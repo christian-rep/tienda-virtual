@@ -8,6 +8,9 @@ const cors = require('cors');
 const app = express();
 app.use(cors());
 app.use(express.json()); // Para recibir JSON en las peticiones
+const errorHandler = require("./middleware/errorHandler");
+app.use(errorHandler);
+
 
 // Rutas (se agregarán más adelante)
 app.use('/api/usuarios', require('./routes/usuarios'));
