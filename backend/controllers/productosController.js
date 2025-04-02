@@ -24,19 +24,25 @@ const getProductById = async (req, res, next) => {
     }
 };
 
-// Crear un nuevo producto
 const createProduct = async (req, res, next) => {
-    try {
-        const { nombre, precio } = req.body;
-        if (!nombre || !precio) {
-            return res.status(400).json({ error: "Nombre y precio son obligatorios" });
-        }
-        const [result] = await db.query("INSERT INTO productos (nombre, precio) VALUES (?, ?)", [nombre, precio]);
-        res.status(201).json({ id: result.insertId, nombre, precio });
-    } catch (error) {
-        next(error);
-    }
+  try {
+      const { nombre, precio } = req.body;
+
+      // Validación básica
+      if (!nombre || typeof nombre !== 'string') {
+          return res.status(400).json({ error: "El nombre es obligatorio y debe ser una cadena de texto." });
+      }
+      if (!precio || typeof precio !== 'number') {
+          return res.status(400).json({ error: "El precio es obligatorio y debe ser un número." });
+      }
+
+      const [result] = await db.query("INSERT INTO productos (nombre, precio) VALUES (?, ?)", [nombre, precio]);
+      res.status(201).json({ id: result.insertId, nombre, precio });
+  } catch (error) {
+      next(error);
+  }
 };
+
 
 // Actualizar un producto
 const updateProduct = async (req, res, next) => {
@@ -79,6 +85,6 @@ module.exports = {
   createProduct,
   updateProduct,
   deleteProduct,
-};
+};  
 
 
