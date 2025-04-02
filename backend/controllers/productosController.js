@@ -3,7 +3,7 @@ const db = require("../config/db");
 // Obtener todos los productos
 const getProducts = async (req, res, next) => {
     try {
-        const [rows] = await db.query("SELECT * FROM productos");
+        const [rows] = await db.promise().query("SELECT * FROM productos");
         res.json(rows);
     } catch (error) {
         next(error);
@@ -14,7 +14,7 @@ const getProducts = async (req, res, next) => {
 const getProductById = async (req, res, next) => {
     try {
         const { id } = req.params;
-        const [rows] = await db.query("SELECT * FROM productos WHERE id = ?", [id]);
+        const [rows] = await db.promise().query("SELECT * FROM productos WHERE id = ?", [id]);
         if (rows.length === 0) {
             return res.status(404).json({ error: "Producto no encontrado" });
         }
@@ -24,25 +24,28 @@ const getProductById = async (req, res, next) => {
     }
 };
 
+// Crear un nuevo producto
 const createProduct = async (req, res, next) => {
-  try {
-      const { nombre, precio } = req.body;
+    try {
+        const { nombre, precio } = req.body;
 
-      // Validación básica
-      if (!nombre || typeof nombre !== 'string') {
-          return res.status(400).json({ error: "El nombre es obligatorio y debe ser una cadena de texto." });
-      }
-      if (!precio || typeof precio !== 'number') {
-          return res.status(400).json({ error: "El precio es obligatorio y debe ser un número." });
-      }
+        if (!nombre || typeof nombre !== 'string') {
+            return res.status(400).json({ error: "El nombre es obligatorio y debe ser una cadena de texto." });
+        }
+        if (!precio || typeof precio !== 'number') {
+            return res.status(400).json({ error: "El precio es obligatorio y debe ser un número." });
+        }
 
-      const [result] = await db.query("INSERT INTO productos (nombre, precio) VALUES (?, ?)", [nombre, precio]);
-      res.status(201).json({ id: result.insertId, nombre, precio });
-  } catch (error) {
-      next(error);
-  }
+        const [result] = await db.promise().query(
+            "INSERT INTO productos (nombre, precio) VALUES (?, ?)", 
+            [nombre, precio]
+        );
+
+        res.status(201).json({ id: result.insertId, nombre, precio });
+    } catch (error) {
+        next(error);
+    }
 };
-
 
 // Actualizar un producto
 const updateProduct = async (req, res, next) => {
@@ -50,7 +53,10 @@ const updateProduct = async (req, res, next) => {
         const { id } = req.params;
         const { nombre, precio } = req.body;
 
-        const [result] = await db.query("UPDATE productos SET nombre = ?, precio = ? WHERE id = ?", [nombre, precio, id]);
+        const [result] = await db.promise().query(
+            "UPDATE productos SET nombre = ?, precio = ? WHERE id = ?", 
+            [nombre, precio, id]
+        );
 
         if (result.affectedRows === 0) {
             return res.status(404).json({ error: "Producto no encontrado" });
@@ -67,7 +73,7 @@ const deleteProduct = async (req, res, next) => {
     try {
         const { id } = req.params;
 
-        const [result] = await db.query("DELETE FROM productos WHERE id = ?", [id]);
+        const [result] = await db.promise().query("DELETE FROM productos WHERE id = ?", [id]);
 
         if (result.affectedRows === 0) {
             return res.status(404).json({ error: "Producto no encontrado" });
@@ -80,11 +86,9 @@ const deleteProduct = async (req, res, next) => {
 };
 
 module.exports = {
-  getProducts,
-  getProductById,
-  createProduct,
-  updateProduct,
-  deleteProduct,
-};  
-
-
+    getProducts,
+    getProductById,
+    createProduct,
+    updateProduct,
+    deleteProduct,
+};

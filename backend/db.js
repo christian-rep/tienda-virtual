@@ -1,19 +1,18 @@
-const mysql = require('mysql2');
-const connection = mysql.createConnection({
-    host: 'localhost',
-    user: 'root', // Cambia por tu usuario
-    password: 'alkFCx1OXCAjlK4j87Vy', // Pon la contraseña entre comillas
-    database: 'tienda_virtual',
-    port: 5000
+const mysql = require("mysql2/promise");
+
+const pool = mysql.createPool({
+    host: "localhost",
+    user: "root", // Asegúrate de que este usuario tenga acceso a la BD
+    password: "alkFCx1OXCAjlK4j87Vy", // Revisa que la contraseña sea correcta
+    database: "tienda_virtual",
+    port: 5000,
+    waitForConnections: true,
+    connectionLimit: 10,
+    queueLimit: 0,
 });
 
-connection.connect(err => {
-    if (err) {
-        console.error('Error de conexión a MySQL:', err);
-        return;
-    }
-    console.log('✅ Conectado a MySQL');
-});
+pool.getConnection()
+    .then(() => console.log("✅ Conectado a MySQL"))
+    .catch((error) => console.error("❌ Error al conectar a MySQL:", error.message));
 
-module.exports = connection;
-
+module.exports = pool;
