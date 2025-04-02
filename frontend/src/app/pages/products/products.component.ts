@@ -7,14 +7,15 @@ import { ApiService } from '../../services/api.service';
   styleUrls: ['./products.component.scss']
 })
 export class ProductsComponent implements OnInit {
-  products: any[] = []; // Array para almacenar los productos
+  productos: any[] = []; // Array para almacenar los productos
 
   constructor(private apiService: ApiService) {}
 
   ngOnInit(): void {
     this.apiService.getProducts().subscribe(
       (data) => {
-        this.products = data;
+        console.log("Productos obtenidos:", data); // 🔹 Verifica que los datos lleguen
+        this.productos = data;
       },
       (error) => {
         console.error('Error al obtener productos:', error);

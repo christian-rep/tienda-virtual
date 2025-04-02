@@ -27,7 +27,7 @@ const getProductById = async (req, res, next) => {
 // Crear un nuevo producto
 const createProduct = async (req, res, next) => {
     try {
-        const { nombre, precio } = req.body;
+        const { nombre, descripcion = "", precio, stock = 0 } = req.body;
 
         if (!nombre || typeof nombre !== 'string') {
             return res.status(400).json({ error: "El nombre es obligatorio y debe ser una cadena de texto." });
@@ -37,11 +37,11 @@ const createProduct = async (req, res, next) => {
         }
 
         const [result] = await db.promise().query(
-            "INSERT INTO productos (nombre, precio) VALUES (?, ?)", 
-            [nombre, precio]
+            "INSERT INTO productos (nombre, descripcion, precio, stock) VALUES (?, ?, ?, ?)", 
+            [nombre, descripcion, precio, stock]
         );
 
-        res.status(201).json({ id: result.insertId, nombre, precio });
+        res.status(201).json({ id: result.insertId, nombre, descripcion, precio, stock });
     } catch (error) {
         next(error);
     }
@@ -51,11 +51,21 @@ const createProduct = async (req, res, next) => {
 const updateProduct = async (req, res, next) => {
     try {
         const { id } = req.params;
-        const { nombre, precio } = req.body;
+        const { nombre, descripcion, precio, stock } = req.body;
+
+        // Validamos que al menos un campo sea proporcionado
+        if (!nombre && !descripcion && precio == null && stock == null) {
+            return res.status(400).json({ error: "Debe proporcionar al menos un dato para actualizar." });
+        }
 
         const [result] = await db.promise().query(
-            "UPDATE productos SET nombre = ?, precio = ? WHERE id = ?", 
-            [nombre, precio, id]
+            `UPDATE productos 
+            SET nombre = COALESCE(?, nombre), 
+                descripcion = COALESCE(?, descripcion), 
+                precio = COALESCE(?, precio), 
+                stock = COALESCE(?, stock) 
+            WHERE id = ?`, 
+            [nombre, descripcion, precio, stock, id]
         );
 
         if (result.affectedRows === 0) {
