@@ -24,7 +24,7 @@ export class RegisterComponent implements OnInit {
   ) {
     this.registerForm = this.formBuilder.group({
       nombre: ['', [Validators.required, Validators.minLength(2)]],
-      apellido: [''],
+      apellido: ['', [Validators.required, Validators.minLength(2)]],
       email: ['', [Validators.required, Validators.email]],
       password: ['', [Validators.required, Validators.minLength(6)]],
       confirmPassword: ['', [Validators.required]]
@@ -56,7 +56,7 @@ export class RegisterComponent implements OnInit {
 
     this.authService.register(registerData).subscribe({
       next: () => {
-        this.router.navigate(['/']);
+        this.router.navigate(['/login']);
       },
       error: (error) => {
         console.error('Error de registro:', error);

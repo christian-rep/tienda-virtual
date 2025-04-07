@@ -1,6 +1,7 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { db } = require('../db');
+const db = require('../config/db');
+const { v4: uuidv4 } = require('uuid');
 
 // Configuración de JWT
 const JWT_SECRET = process.env.JWT_SECRET || 'tu_secreto_jwt_super_seguro';
@@ -79,7 +80,7 @@ exports.register = async (req, res) => {
     const { nombre, apellido, email, password } = req.body;
 
     // Validar que los campos requeridos estén presentes
-    if (!nombre || !email || !password) {
+    if (!nombre || !apellido || !email || !password) {
       return res.status(400).json({ 
         success: false, 
         message: 'Por favor, complete todos los campos requeridos' 
@@ -103,15 +104,18 @@ exports.register = async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
+    // Generar un ID único
+    const userId = uuidv4();
+
     // Insertar nuevo usuario
     const [result] = await db.query(
-      'INSERT INTO usuarios (nombre, apellido, email, password, rol) VALUES (?, ?, ?, ?, ?)',
-      [nombre, apellido, email, hashedPassword, 'user']
+      'INSERT INTO usuarios (id, nombre, apellido, email, password, rol) VALUES (?, ?, ?, ?, ?, ?)',
+      [userId, nombre, apellido, email, hashedPassword, 'user']
     );
 
     const [newUserRows] = await db.query(
       'SELECT * FROM usuarios WHERE id = ?',
-      [result.insertId]
+      [userId]
     );
     
     const newUser = newUserRows[0];
