@@ -1,1 +1,53 @@
-<p>cart works!</p>
+<div class="cart-container">
+  <h2>Carrito de Compras</h2>
+
+  <div *ngIf="cartItems.length === 0" class="empty-cart">
+    <p>Tu carrito está vacío</p>
+    <a routerLink="/products" class="btn-primary">Ver Productos</a>
+  </div>
+
+  <div *ngIf="cartItems.length > 0" class="cart-content">
+    <div class="cart-items">
+      <div *ngFor="let item of cartItems" class="cart-item">
+        <div class="item-image" *ngIf="item.product.imagen">
+          <img [src]="item.product.imagen" [alt]="item.product.nombre">
+        </div>
+        <div class="item-details">
+          <h3>{{ item.product.nombre }}</h3>
+          <p class="item-price">{{ formatPrice(item.product.precio) }}</p>
+        </div>
+        <div class="item-quantity">
+          <button (click)="updateQuantity(item.product.id, item.quantity - 1)" class="btn-quantity">-</button>
+          <span>{{ item.quantity }}</span>
+          <button (click)="updateQuantity(item.product.id, item.quantity + 1)" class="btn-quantity">+</button>
+        </div>
+        <div class="item-total">
+          {{ formatPrice(item.product.precio * item.quantity) }}
+        </div>
+        <button (click)="removeItem(item.product.id)" class="btn-remove">
+          Eliminar
+        </button>
+      </div>
+    </div>
+
+    <div class="cart-summary">
+      <div class="summary-row">
+        <span>Subtotal:</span>
+        <span>{{ formatPrice(total) }}</span>
+      </div>
+      <div class="summary-row">
+        <span>IVA (21%):</span>
+        <span>{{ formatPrice(total * 0.21) }}</span>
+      </div>
+      <div class="summary-row total">
+        <span>Total:</span>
+        <span>{{ formatPrice(total * 1.21) }}</span>
+      </div>
+
+      <div class="cart-actions">
+        <button class="btn-clear" (click)="clearCart()">Vaciar Carrito</button>
+        <button class="btn-checkout">Finalizar Compra</button>
+      </div>
+    </div>
+  </div>
+</div>

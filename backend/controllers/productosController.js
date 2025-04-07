@@ -1,9 +1,9 @@
-const db = require("../config/db");
+const { db } = require("../db");
 
 // Obtener todos los productos
 const getProducts = async (req, res, next) => {
     try {
-        const [rows] = await db.promise().query("SELECT * FROM productos");
+        const [rows] = await db.query("SELECT * FROM productos");
         res.json(rows);
     } catch (error) {
         next(error);
@@ -14,7 +14,7 @@ const getProducts = async (req, res, next) => {
 const getProductById = async (req, res, next) => {
     try {
         const { id } = req.params;
-        const [rows] = await db.promise().query("SELECT * FROM productos WHERE id = ?", [id]);
+        const [rows] = await db.query("SELECT * FROM productos WHERE id = ?", [id]);
         if (rows.length === 0) {
             return res.status(404).json({ error: "Producto no encontrado" });
         }
@@ -36,7 +36,7 @@ const createProduct = async (req, res, next) => {
             return res.status(400).json({ error: "El precio es obligatorio y debe ser un número." });
         }
 
-        const [result] = await db.promise().query(
+        const [result] = await db.query(
             "INSERT INTO productos (nombre, descripcion, precio, stock) VALUES (?, ?, ?, ?)", 
             [nombre, descripcion, precio, stock]
         );
@@ -58,7 +58,7 @@ const updateProduct = async (req, res, next) => {
             return res.status(400).json({ error: "Debe proporcionar al menos un dato para actualizar." });
         }
 
-        const [result] = await db.promise().query(
+        const [result] = await db.query(
             `UPDATE productos 
             SET nombre = COALESCE(?, nombre), 
                 descripcion = COALESCE(?, descripcion), 
@@ -83,7 +83,7 @@ const deleteProduct = async (req, res, next) => {
     try {
         const { id } = req.params;
 
-        const [result] = await db.promise().query("DELETE FROM productos WHERE id = ?", [id]);
+        const [result] = await db.query("DELETE FROM productos WHERE id = ?", [id]);
 
         if (result.affectedRows === 0) {
             return res.status(404).json({ error: "Producto no encontrado" });
@@ -100,5 +100,5 @@ module.exports = {
     getProductById,
     createProduct,
     updateProduct,
-    deleteProduct,
+    deleteProduct
 };

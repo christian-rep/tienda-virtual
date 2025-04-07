@@ -1,7 +1,28 @@
-<div class="product-card" *ngFor="let producto of productos">
-  <img [src]="producto.imageUrl" alt="{{ producto.nombre }}" />
-  <h3>{{ producto.nombre }}</h3>
-  <p>{{ producto.descripcion }}</p>
-  <p><strong>Precio: ${{ producto.precio }}</strong></p>
+<div class="products-container">
+  <h2>Nuestros Productos</h2>
+
+  <div *ngIf="loading" class="loading">
+    Cargando productos...
+  </div>
+
+  <div *ngIf="error" class="error">
+    {{ error }}
+  </div>
+
+  <div *ngIf="!loading && !error" class="products-grid">
+    <div *ngFor="let producto of productos" class="product-card">
+      <div class="product-image" *ngIf="producto.imagen">
+        <img [src]="producto.imagen" [alt]="producto.nombre">
+      </div>
+      <div class="product-info">
+        <h3>{{ producto.nombre }}</h3>
+        <p class="description">{{ producto.descripcion }}</p>
+        <p class="price">{{ formatPrice(producto.precio) }}</p>
+        <button class="btn-add-cart" (click)="addToCart(producto)">
+          Agregar al Carrito
+        </button>
+      </div>
+    </div>
+  </div>
 </div>
 

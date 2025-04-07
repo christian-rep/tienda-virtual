@@ -2,13 +2,16 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const mongoose = require("mongoose");
-const mysql = require("mysql2/promise"); // 🔥 Usar modo promesas
 const morgan = require("morgan");
+
+// Importar conexión a MySQL
+const { db } = require("./db");
 
 // Importar rutas
 const productosRoutes = require("./routes/productos");
 const usuariosRoutes = require("./routes/usuarios");
 const chatRoutes = require("./routes/chat");
+const authRoutes = require('./routes/authRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -22,6 +25,7 @@ app.use(morgan("dev"));
 app.use("/api/productos", productosRoutes);
 app.use("/api/usuarios", usuariosRoutes);
 app.use("/api/chat", chatRoutes);
+app.use('/api/auth', authRoutes);
 
 // Conexión a MongoDB
 if (!process.env.MONGODB_URI) {
@@ -37,40 +41,19 @@ mongoose
     process.exit(1);
   });
 
-// Conexión a MySQL con promesas
-const db = mysql.createPool({
-  host: process.env.DB_HOST,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASS,
-  database: process.env.DB_NAME,
-  waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0,
-});
-
-// Verificar conexión a MySQL
-(async () => {
-  try {
-    await db.getConnection();
-    console.log("✅ Conectado a MySQL");
-  } catch (err) {
-    console.error("❌ Error conectando a MySQL:", err.message);
-    process.exit(1);
-  }
-})();
-
 // Middleware de manejo de errores
 app.use((err, req, res, next) => {
   console.error("🔥 ERROR:", err.stack);
   res.status(500).json({ error: "Ocurrió un error en el servidor" });
 });
 
-app.get("/", (req, res) => {
-  res.send("Bienvenido a la API de la tienda virtual");
+// Ruta de prueba
+app.get('/', (req, res) => {
+  res.send('API funcionando correctamente');
 });
 
 // Iniciar servidor
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`);
 });
 
@@ -83,5 +66,3 @@ process.on("uncaughtException", (err) => {
 process.on("unhandledRejection", (reason, promise) => {
   console.error("⚠️ Promesa rechazada sin manejar:", reason);
 });
-
-module.exports = { db }; // Exportar la conexión para usar en otros archivos
