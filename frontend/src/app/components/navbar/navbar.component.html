@@ -1,1 +1,26 @@
-<p>navbar works!</p>
+<nav class="navbar">
+  <div class="navbar-brand">
+    <a routerLink="/" class="navbar-item">Mi Tienda</a>
+  </div>
+
+  <div class="navbar-menu">
+    <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}" class="navbar-item">Inicio</a>
+    <a routerLink="/products" routerLinkActive="active" class="navbar-item">Productos</a>
+    <a routerLink="/cart" routerLinkActive="active" class="navbar-item">Carrito</a>
+    <a routerLink="/chat" routerLinkActive="active" class="navbar-item">Chat</a>
+  </div>
+
+  <div class="navbar-end">
+    <!-- Opciones para usuarios no autenticados -->
+    <ng-container *ngIf="!isAuthenticated">
+      <a routerLink="/login" routerLinkActive="active" class="navbar-item">Iniciar Sesión</a>
+      <a routerLink="/register" routerLinkActive="active" class="navbar-item">Registrarse</a>
+    </ng-container>
+
+    <!-- Opciones para usuarios autenticados -->
+    <ng-container *ngIf="isAuthenticated">
+      <span class="navbar-item">Bienvenido, {{ userName }}</span>
+      <a (click)="logout()" class="navbar-item" style="cursor: pointer;">Cerrar Sesión</a>
+    </ng-container>
+  </div>
+</nav>
