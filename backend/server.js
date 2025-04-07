@@ -5,7 +5,7 @@ const mongoose = require("mongoose");
 const morgan = require("morgan");
 
 // Importar conexión a MySQL
-const { db } = require("./db");
+const db = require("./config/db");
 
 // Importar rutas
 const productosRoutes = require("./routes/productos");

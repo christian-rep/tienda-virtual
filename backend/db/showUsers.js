@@ -1,68 +1,44 @@
 const mysql = require('mysql2/promise');
+require('dotenv').config();
 
-// Configuración de la conexión a la base de datos
-const dbConfig = {
-  host: process.env.DB_HOST || 'localhost',
-  user: process.env.DB_USER || 'root',
-  password: process.env.DB_PASS || 'alkFCx1OXCAjlK4j87Vy',
-  database: process.env.DB_NAME || 'tienda_virtual',
-  port: process.env.DB_PORT || 3306
-};
+async function showUsersTable() {
+  const connection = await mysql.createConnection({
+    host: process.env.DB_HOST || 'localhost',
+    user: process.env.DB_USER || 'root',
+    password: process.env.DB_PASSWORD || 'alkFCx1OXCAjlK4j87Vy',
+    database: process.env.DB_NAME || 'tienda_virtual'
+  });
 
-async function showUsers() {
-  let connection;
-  
   try {
-    // Establecer conexión
-    connection = await mysql.createConnection(dbConfig);
-    console.log('✅ Conectado a MySQL');
-    
-    // Primero, verificar qué columnas existen en la tabla
+    // Mostrar estructura de la tabla
+    console.log('Estructura de la tabla usuarios:');
     const [columns] = await connection.query(
       "SHOW COLUMNS FROM usuarios"
     );
     
-    console.log('Columnas disponibles en la tabla usuarios:');
     columns.forEach(column => {
-      console.log(`- ${column.Field}`);
+      console.log(`- ${column.Field} (${column.Type}) ${column.Null === 'NO' ? 'NOT NULL' : 'NULL'} ${column.Default ? `DEFAULT ${column.Default}` : ''}`);
     });
     
-    // Construir la consulta dinámicamente basada en las columnas existentes
-    const columnNames = columns.map(column => column.Field);
-    const selectColumns = columnNames.join(', ');
-    
-    // Obtener usuarios
+    // Mostrar usuarios existentes
+    console.log('\nUsuarios existentes:');
     const [users] = await connection.query(
-      `SELECT ${selectColumns} FROM usuarios`
+      "SELECT id, nombre, apellido, email, rol FROM usuarios"
     );
-    
-    console.log('\nUsuarios registrados:');
-    console.log('-------------------');
     
     if (users.length === 0) {
       console.log('No hay usuarios registrados');
     } else {
       users.forEach(user => {
-        console.log(`ID: ${user.id}`);
-        console.log(`Nombre: ${user.nombre}`);
-        if (user.apellido) console.log(`Apellido: ${user.apellido}`);
-        console.log(`Email: ${user.email}`);
-        if (user.rol) console.log(`Rol: ${user.rol}`);
-        if (user.password) console.log(`Password: [ENCRIPTADO]`);
-        console.log('-------------------');
+        console.log(`- ID: ${user.id}, Nombre: ${user.nombre} ${user.apellido || ''}, Email: ${user.email}, Rol: ${user.rol}`);
       });
     }
-    
   } catch (error) {
-    console.error('❌ Error al obtener usuarios:', error);
+    console.error('Error al mostrar la tabla usuarios:', error);
   } finally {
-    // Cerrar la conexión
-    if (connection) {
-      await connection.end();
-      console.log('Conexión cerrada');
-    }
+    await connection.end();
   }
 }
 
 // Ejecutar la función
-showUsers(); 
+showUsersTable(); 

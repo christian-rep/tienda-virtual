@@ -1,61 +1,45 @@
 const mysql = require('mysql2/promise');
+const fs = require('fs');
+const path = require('path');
+require('dotenv').config();
 
 // Configuración de la conexión a la base de datos
 const dbConfig = {
   host: process.env.DB_HOST || 'localhost',
   user: process.env.DB_USER || 'root',
-  password: process.env.DB_PASS || 'alkFCx1OXCAjlK4j87Vy',
+  password: process.env.DB_PASSWORD || 'alkFCx1OXCAjlK4j87Vy',
   database: process.env.DB_NAME || 'tienda_virtual',
   port: process.env.DB_PORT || 3306
 };
 
-async function checkUsuariosTable() {
-  let connection;
-  
+async function checkAndCreateTable() {
+  const connection = await mysql.createConnection(dbConfig);
+
   try {
-    // Establecer conexión
-    connection = await mysql.createConnection(dbConfig);
-    console.log('✅ Conectado a MySQL');
-    
     // Verificar si la tabla existe
     const [tables] = await connection.query(
       "SHOW TABLES LIKE 'usuarios'"
     );
-    
+
     if (tables.length === 0) {
-      console.log('❌ La tabla usuarios no existe');
-      return;
+      console.log('La tabla usuarios no existe. Creándola...');
+      
+      // Leer el archivo SQL
+      const sqlFilePath = path.join(__dirname, 'usuarios.sql');
+      const sqlContent = fs.readFileSync(sqlFilePath, 'utf8');
+      
+      // Ejecutar el script SQL
+      await connection.query(sqlContent);
+      console.log('Tabla usuarios creada correctamente');
+    } else {
+      console.log('La tabla usuarios ya existe');
     }
-    
-    console.log('✅ La tabla usuarios existe');
-    
-    // Obtener la estructura de la tabla
-    const [columns] = await connection.query(
-      "SHOW COLUMNS FROM usuarios"
-    );
-    
-    console.log('Estructura de la tabla usuarios:');
-    columns.forEach(column => {
-      console.log(`- ${column.Field} (${column.Type}) ${column.Null === 'NO' ? 'NOT NULL' : 'NULL'} ${column.Default ? `DEFAULT ${column.Default}` : ''}`);
-    });
-    
-    // Contar usuarios
-    const [countResult] = await connection.query(
-      "SELECT COUNT(*) as count FROM usuarios"
-    );
-    
-    console.log(`Total de usuarios: ${countResult[0].count}`);
-    
   } catch (error) {
-    console.error('❌ Error al verificar la tabla de usuarios:', error);
+    console.error('Error al verificar/crear la tabla usuarios:', error);
   } finally {
-    // Cerrar la conexión
-    if (connection) {
-      await connection.end();
-      console.log('Conexión cerrada');
-    }
+    await connection.end();
   }
 }
 
 // Ejecutar la función
-checkUsuariosTable(); 
+checkAndCreateTable(); 
