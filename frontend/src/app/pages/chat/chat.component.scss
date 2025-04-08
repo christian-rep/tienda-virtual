@@ -2,29 +2,47 @@
   display: flex;
   flex-direction: column;
   height: calc(100vh - 200px);
-  max-width: 900px;
+  max-width: 1000px;
   margin: 0 auto;
   padding: 20px;
   background-color: #f9f9f9;
-  border-radius: 8px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
 }
 
 .chat-history {
   flex: 1;
   overflow-y: auto;
-  padding: 10px;
+  padding: 15px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
+  scrollbar-width: thin;
+  scrollbar-color: #ccc #f9f9f9;
+}
+
+.chat-history::-webkit-scrollbar {
+  width: 8px;
+}
+
+.chat-history::-webkit-scrollbar-track {
+  background: #f9f9f9;
+}
+
+.chat-history::-webkit-scrollbar-thumb {
+  background-color: #ccc;
+  border-radius: 10px;
+  border: 2px solid #f9f9f9;
 }
 
 .message {
   max-width: 80%;
-  padding: 12px 15px;
-  border-radius: 10px;
+  padding: 14px 18px;
+  border-radius: 12px;
   animation: fadeIn 0.3s ease-in-out;
   word-break: break-word;
+  font-size: 16px;
+  line-height: 1.5;
 }
 
 @keyframes fadeIn {
@@ -35,13 +53,15 @@
 .user-message {
   align-self: flex-end;
   background-color: #dcf8c6;
-  border-bottom-right-radius: 2px;
+  border-bottom-right-radius: 4px;
+  margin-left: 40px;
 }
 
 .bot-message {
   align-self: flex-start;
   background-color: white;
-  border-bottom-left-radius: 2px;
+  border-bottom-left-radius: 4px;
+  margin-right: 40px;
 }
 
 .message-content {
@@ -50,7 +70,7 @@
 }
 
 .message-text {
-  margin-bottom: 5px;
+  margin-bottom: 6px;
 }
 
 .message-time {
@@ -63,27 +83,29 @@
   display: flex;
   margin-top: 20px;
   border-top: 1px solid #eee;
-  padding-top: 15px;
+  padding-top: 20px;
 }
 
 .chat-input input {
   flex: 1;
-  padding: 12px 15px;
+  padding: 15px 20px;
   border: 1px solid #ddd;
-  border-radius: 20px;
-  font-size: 14px;
+  border-radius: 24px;
+  font-size: 16px;
   outline: none;
-  transition: border-color 0.3s;
+  transition: all 0.3s;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
 }
 
 .chat-input input:focus {
   border-color: #4CAF50;
+  box-shadow: 0 2px 10px rgba(76, 175, 80, 0.1);
 }
 
 .chat-input button {
-  margin-left: 10px;
-  width: 40px;
-  height: 40px;
+  margin-left: 12px;
+  width: 48px;
+  height: 48px;
   border: none;
   border-radius: 50%;
   background-color: #4CAF50;
@@ -92,28 +114,32 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  transition: background-color 0.3s;
+  transition: all 0.3s;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
 
 .chat-input button:hover {
   background-color: #3e8e41;
+  transform: translateY(-2px);
 }
 
 .chat-input button:disabled {
   background-color: #cccccc;
   cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
 }
 
 .typing-indicator {
   display: flex;
-  padding: 10px;
+  padding: 15px;
 }
 
 .typing-indicator span {
-  height: 8px;
-  width: 8px;
+  height: 10px;
+  width: 10px;
   float: left;
-  margin: 0 1px;
+  margin: 0 2px;
   background-color: #9E9EA1;
   display: block;
   border-radius: 50%;
@@ -139,32 +165,32 @@
 }
 
 .recommendations {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 10px;
-  max-width: 600px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+  margin-top: 15px;
+  width: 100%;
 }
 
 .plant-card {
   display: flex;
   background-color: white;
-  border-radius: 8px;
+  border-radius: 10px;
   overflow: hidden;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
   width: 100%;
-  transition: transform 0.2s;
+  transition: all 0.3s;
   cursor: pointer;
 }
 
 .plant-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  transform: translateY(-5px);
+  box-shadow: 0 8px 15px rgba(0, 0, 0, 0.15);
 }
 
 .plant-image {
-  width: 80px;
-  height: 80px;
+  width: 100px;
+  height: 100px;
   overflow: hidden;
   flex-shrink: 0;
 }
@@ -183,37 +209,38 @@
 }
 
 .no-image i {
-  font-size: 30px;
+  font-size: 36px;
   color: #aaa;
 }
 
 .plant-info {
-  padding: 10px;
+  padding: 12px 15px;
   flex: 1;
 }
 
 .plant-info h3 {
-  margin: 0 0 3px 0;
-  font-size: 14px;
+  margin: 0 0 5px 0;
+  font-size: 16px;
+  font-weight: 600;
 }
 
 .scientific-name {
-  margin: 0 0 5px 0;
-  font-size: 12px;
+  margin: 0 0 8px 0;
+  font-size: 13px;
   color: #777;
 }
 
 .plant-badges {
   display: flex;
-  gap: 5px;
-  margin-bottom: 5px;
+  gap: 6px;
+  margin-bottom: 8px;
 }
 
 .badge {
   display: inline-block;
-  padding: 2px 6px;
+  padding: 3px 8px;
   border-radius: 12px;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 500;
 }
 
@@ -249,22 +276,55 @@
 
 .plant-care-icons {
   display: flex;
-  gap: 10px;
-  font-size: 11px;
-  color: #666;
+  gap: 12px;
+  margin-top: 5px;
+  font-size: 13px;
+  color: #555;
+}
+
+.plant-care-icons span {
+  display: flex;
+  align-items: center;
+  gap: 5px;
 }
 
 .plant-care-icons i {
-  margin-right: 3px;
+  color: #4CAF50;
 }
 
-@media (max-width: 600px) {
+/* Media queries para diferentes tamaños de pantalla */
+@media (max-width: 768px) {
   .chat-container {
-    height: calc(100vh - 150px);
-    padding: 10px;
+    height: calc(100vh - 160px);
+    padding: 15px;
   }
   
   .message {
-    max-width: 90%;
+    max-width: 85%;
+    padding: 12px 15px;
+  }
+  
+  .recommendations {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (min-width: 1200px) {
+  .chat-container {
+    max-width: 1100px;
+    height: calc(100vh - 250px);
+    padding: 30px;
+  }
+  
+  .chat-history {
+    padding: 20px;
+  }
+  
+  .recommendations {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .message {
+    font-size: 17px;
   }
 }
