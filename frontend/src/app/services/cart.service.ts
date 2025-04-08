@@ -73,6 +73,10 @@ export class CartService {
     return this.items;
   }
 
+  getCart(): Observable<CartItem[]> {
+    return this.cart$;
+  }
+
   getCartCount(): number {
     return this.items.reduce((count, item) => count + item.quantity, 0);
   }

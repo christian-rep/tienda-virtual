@@ -12,6 +12,7 @@ const productosRoutes = require("./routes/productos");
 const usuariosRoutes = require("./routes/usuarios");
 const chatRoutes = require("./routes/chat");
 const authRoutes = require('./routes/authRoutes');
+const plantasRoutes = require('./routes/plantas');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -26,6 +27,7 @@ app.use("/api/productos", productosRoutes);
 app.use("/api/usuarios", usuariosRoutes);
 app.use("/api/chat", chatRoutes);
 app.use('/api/auth', authRoutes);
+app.use('/api/plantas', plantasRoutes);
 
 // Conexión a MongoDB
 if (!process.env.MONGODB_URI) {

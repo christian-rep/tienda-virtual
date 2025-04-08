@@ -3,7 +3,8 @@ const jwt = require('jsonwebtoken');
 // Configuración de JWT
 const JWT_SECRET = process.env.JWT_SECRET || 'tu_secreto_jwt_super_seguro';
 
-module.exports = (req, res, next) => {
+// Middleware para verificar si el usuario está autenticado
+const isAuthenticated = (req, res, next) => {
   try {
     // Obtener el token del header
     const authHeader = req.headers.authorization;
@@ -47,4 +48,30 @@ module.exports = (req, res, next) => {
       message: 'Token inválido' 
     });
   }
+};
+
+// Middleware para verificar si el usuario es administrador
+const isAdmin = (req, res, next) => {
+  // Verificar si el middleware de autenticación ya estableció req.user
+  if (!req.user) {
+    return res.status(401).json({
+      success: false,
+      message: 'Usuario no autenticado'
+    });
+  }
+
+  // Verificar si el usuario tiene rol de administrador
+  if (req.user.rol !== 'admin') {
+    return res.status(403).json({
+      success: false,
+      message: 'Acceso denegado: se requieren privilegios de administrador'
+    });
+  }
+
+  next();
+};
+
+module.exports = {
+  isAuthenticated,
+  isAdmin
 }; 
