@@ -1,4 +1,91 @@
-<h1>Bienvenido a la tienda virtual</h1>
-<p>Explora nuestros productos y encuentra lo que necesitas.</p>
-<a routerLink="/products" class="btn btn-primary">Ver productos</a>
+<div class="home-container">
+  <!-- Hero Section -->
+  <section class="hero">
+    <div class="hero-content">
+      <h1>Verdalia: Tu Oasis de Plantas</h1>
+      <p>Descubre la diversidad y belleza de nuestras plantas seleccionadas para transformar tu espacio.</p>
+      <div class="hero-buttons">
+        <a routerLink="/products" class="btn btn-primary">Explorar Plantas</a>
+        <a routerLink="/chat" class="btn btn-outline">Asistente de Plantas</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Categorías de Plantas -->
+  <section class="categories">
+    <h2>Nuestras Categorías</h2>
+    <div class="categories-grid">
+      <div class="category-card" (click)="navigateWithFilter('interior')">
+        <div class="category-image">
+          <img src="assets/images/interior-plants.jpg" alt="Plantas de Interior">
+        </div>
+        <h3>Plantas de Interior</h3>
+        <p>Perfectas para decorar y purificar el aire de tu hogar.</p>
+      </div>
+      
+      <div class="category-card" (click)="navigateWithFilter('exterior')">
+        <div class="category-image">
+          <img src="assets/images/exterior-plants.jpg" alt="Plantas de Exterior">
+        </div>
+        <h3>Plantas de Exterior</h3>
+        <p>Ideales para jardines, terrazas y balcones.</p>
+      </div>
+      
+      <div class="category-card" (click)="navigateWithFilter('suculenta')">
+        <div class="category-image">
+          <img src="assets/images/succulents.jpg" alt="Suculentas">
+        </div>
+        <h3>Suculentas</h3>
+        <p>Plantas de bajo mantenimiento y gran belleza.</p>
+      </div>
+      
+      <div class="category-card" (click)="navigateWithFilter('aromatica')">
+        <div class="category-image">
+          <img src="assets/images/aromatic-plants.jpg" alt="Plantas Aromáticas">
+        </div>
+        <h3>Plantas Aromáticas</h3>
+        <p>Aroma y sabor para tus platos favoritos.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Beneficios -->
+  <section class="benefits">
+    <h2>Por qué elegir Verdalia</h2>
+    <div class="benefits-grid">
+      <div class="benefit-card">
+        <i class="fas fa-truck"></i>
+        <h3>Envío Rápido</h3>
+        <p>Entrega a toda la ciudad en 24-48 horas con embalaje especial para proteger tus plantas.</p>
+      </div>
+      
+      <div class="benefit-card">
+        <i class="fas fa-leaf"></i>
+        <h3>Calidad Garantizada</h3>
+        <p>Plantas cultivadas con cuidado y seleccionadas por nuestros expertos botánicos.</p>
+      </div>
+      
+      <div class="benefit-card">
+        <i class="fas fa-comments"></i>
+        <h3>Asesoramiento Personalizado</h3>
+        <p>Nuestro asistente virtual te ayudará a elegir la planta perfecta para tu espacio.</p>
+      </div>
+      
+      <div class="benefit-card">
+        <i class="fas fa-hand-holding-heart"></i>
+        <h3>Compromiso Ambiental</h3>
+        <p>Por cada 10 plantas vendidas, plantamos un árbol en zonas de reforestación.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Call to Action -->
+  <section class="cta">
+    <div class="cta-content">
+      <h2>¿No sabes qué planta elegir?</h2>
+      <p>Utiliza nuestro asistente virtual que te ayudará a encontrar la planta perfecta según tus necesidades.</p>
+      <a routerLink="/chat" class="btn btn-primary">Hablar con Asistente</a>
+    </div>
+  </section>
+</div>
 

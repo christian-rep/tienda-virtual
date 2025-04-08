@@ -1,1 +1,53 @@
-<p>chat works!</p>
+<div class="chat-container">
+  <div class="chat-history">
+    <div *ngFor="let message of messages" class="message" [ngClass]="{'user-message': message.isUser, 'bot-message': !message.isUser}">
+      <div class="message-content">
+        <div class="message-text">{{ message.text }}</div>
+        <div class="message-time">{{ message.timestamp | date:'shortTime' }}</div>
+      </div>
+      
+      <!-- Recomendaciones de plantas -->
+      <div *ngIf="message.recommendations && message.recommendations.length > 0" class="recommendations">
+        <div *ngFor="let planta of message.recommendations" class="plant-card" (click)="verDetallePlanta(planta)">
+          <div class="plant-image" *ngIf="planta.imagen">
+            <img [src]="planta.imagen" [alt]="planta.nombre">
+          </div>
+          <div class="plant-image no-image" *ngIf="!planta.imagen">
+            <i class="fas fa-seedling"></i>
+          </div>
+          <div class="plant-info">
+            <h3>{{ planta.nombre }}</h3>
+            <p *ngIf="planta.nombreCientifico" class="scientific-name"><em>{{ planta.nombreCientifico }}</em></p>
+            <div class="plant-badges">
+              <span class="badge" [ngClass]="'badge-' + planta.tipoPlanta">{{ planta.tipoPlanta }}</span>
+              <span class="badge badge-light">{{ planta.nivelDificultad }}</span>
+            </div>
+            <div class="plant-care-icons">
+              <span title="Nivel de luz"><i class="fas fa-sun"></i> {{ planta.nivelLuz }}</span>
+              <span title="Frecuencia de riego"><i class="fas fa-tint"></i> {{ planta.frecuenciaRiego }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div *ngIf="loading" class="message bot-message">
+      <div class="typing-indicator">
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
+    </div>
+  </div>
+  
+  <form [formGroup]="chatForm" (ngSubmit)="sendMessage()" class="chat-input">
+    <input 
+      type="text" 
+      formControlName="message" 
+      placeholder="Escribe tu consulta sobre plantas..." 
+      autocomplete="off"
+    >
+    <button type="submit" [disabled]="chatForm.invalid || loading">
+      <i class="fas fa-paper-plane"></i>
+    </button>
+  </form>
+</div>

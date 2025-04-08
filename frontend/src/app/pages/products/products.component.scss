@@ -1,36 +1,296 @@
-.product-container {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 20px;
-    justify-content: center;
+.products-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+h2 {
+  text-align: center;
+  color: #2c3e50;
+  margin-bottom: 30px;
+  font-size: 32px;
+}
+
+.filters-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+  padding: 20px;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  margin-bottom: 30px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  min-width: 200px;
+  flex: 1;
+}
+
+.filter-group label {
+  margin-bottom: 8px;
+  font-weight: 500;
+  color: #34495e;
+}
+
+.filter-group select {
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background-color: white;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.filter-group select:focus {
+  border-color: #3498db;
+}
+
+.btn-reset-filters {
+  background-color: #e74c3c;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 4px;
+  cursor: pointer;
+  align-self: flex-end;
+  font-size: 14px;
+  transition: background-color 0.2s;
+}
+
+.btn-reset-filters:hover {
+  background-color: #c0392b;
+}
+
+.loading, .error, .no-results {
+  text-align: center;
+  padding: 40px;
+  font-size: 18px;
+  color: #7f8c8d;
+}
+
+.error {
+  color: #e74c3c;
+}
+
+.products-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 30px;
+}
+
+.product-card {
+  background-color: white;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s;
+  display: flex;
+  flex-direction: column;
+}
+
+.product-card:hover {
+  transform: translateY(-10px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+}
+
+.product-image {
+  width: 100%;
+  height: 200px;
+  overflow: hidden;
+}
+
+.product-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.5s;
+}
+
+.product-image img:hover {
+  transform: scale(1.1);
+}
+
+.product-info {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.product-info h3 {
+  font-size: 18px;
+  margin: 0 0 5px 0;
+  color: #2c3e50;
+}
+
+.scientific-name {
+  font-size: 14px;
+  color: #7f8c8d;
+  margin: 0 0 15px 0;
+}
+
+.description {
+  color: #34495e;
+  margin-bottom: 15px;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.4;
+}
+
+.plant-details {
+  margin-bottom: 15px;
+}
+
+.plant-care-icons {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 10px;
+  font-size: 14px;
+  color: #7f8c8d;
+}
+
+.care-icon {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.care-icon i {
+  font-size: 16px;
+}
+
+.care-icon i.fa-sun {
+  color: #f39c12;
+}
+
+.care-icon i.fa-tint {
+  color: #3498db;
+}
+
+.care-icon i.fa-seedling {
+  color: #2ecc71;
+}
+
+.plant-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-bottom: 10px;
+}
+
+.badge {
+  display: inline-block;
+  padding: 5px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+}
+
+.badge-interior {
+  background-color: #3498db;
+  color: white;
+}
+
+.badge-exterior {
+  background-color: #2ecc71;
+  color: white;
+}
+
+.badge-suculenta {
+  background-color: #e67e22;
+  color: white;
+}
+
+.badge-cactus {
+  background-color: #f39c12;
+  color: white;
+}
+
+.badge-aromatica {
+  background-color: #9b59b6;
+  color: white;
+}
+
+.badge-warning {
+  background-color: #e74c3c;
+  color: white;
+}
+
+.price {
+  font-size: 20px;
+  font-weight: bold;
+  color: #2c3e50;
+  margin-bottom: 5px;
+}
+
+.stock {
+  font-size: 14px;
+  color: #27ae60;
+  margin-bottom: 15px;
+}
+
+.out-of-stock {
+  color: #e74c3c;
+}
+
+.btn-add-cart, .btn-view-details {
+  width: 100%;
+  padding: 10px;
+  text-align: center;
+  border: none;
+  border-radius: 4px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  margin-bottom: 10px;
+}
+
+.btn-add-cart {
+  background-color: #27ae60;
+  color: white;
+}
+
+.btn-add-cart:hover {
+  background-color: #2ecc71;
+}
+
+.btn-add-cart:disabled {
+  background-color: #95a5a6;
+  cursor: not-allowed;
+}
+
+.btn-view-details {
+  background-color: #3498db;
+  color: white;
+}
+
+.btn-view-details:hover {
+  background-color: #2980b9;
+}
+
+@media (max-width: 768px) {
+  .filters-container {
+    flex-direction: column;
   }
   
-  .product-card {
-    width: 250px;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    padding: 16px;
-    text-align: center;
-    box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.1);
-  }
-  
-  .product-card img {
+  .filter-group {
     width: 100%;
-    height: auto;
-    border-radius: 5px;
   }
   
-  .btn-primary {
-    background-color: #007bff;
-    color: white;
-    border: none;
-    padding: 10px;
-    cursor: pointer;
-    margin-top: 10px;
-    width: 100%;
+  .products-grid {
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
   }
-  
-  .btn-primary:hover {
-    background-color: #0056b3;
+}
+
+@media (max-width: 480px) {
+  .products-grid {
+    grid-template-columns: 1fr;
   }
+}
   

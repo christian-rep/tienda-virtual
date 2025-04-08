@@ -1,0 +1,125 @@
+<div class="plant-details-container">
+  <div *ngIf="loading" class="loading">
+    Cargando detalles de la planta...
+  </div>
+
+  <div *ngIf="error" class="error">
+    {{ error }}
+  </div>
+
+  <div *ngIf="!loading && !error && planta" class="plant-detail-content">
+    <div class="plant-image-container">
+      <img *ngIf="planta.imagen" [src]="planta.imagen" [alt]="planta.nombre" class="plant-image">
+      <div *ngIf="!planta.imagen" class="no-image">
+        <i class="fas fa-seedling"></i>
+        <p>Imagen no disponible</p>
+      </div>
+    </div>
+
+    <div class="plant-info">
+      <h1 class="plant-name">{{ planta.nombre }}</h1>
+      <h3 *ngIf="planta.nombreCientifico" class="scientific-name">
+        <em>{{ planta.nombreCientifico }}</em>
+      </h3>
+      
+      <div class="plant-type">
+        <span class="badge" [ngClass]="'badge-' + planta.tipoPlanta">{{ planta.tipoPlanta }}</span>
+        <span *ngIf="planta.toxicidad" class="badge badge-warning">{{ planta.toxicidad }}</span>
+      </div>
+      
+      <div class="plant-price">
+        <h2>{{ formatPrice(planta.precio) }}</h2>
+        <p class="stock" [ngClass]="{'out-of-stock': planta.stock === 0}">
+          {{ planta.stock > 0 ? 'En stock: ' + planta.stock : 'Sin stock' }}
+        </p>
+      </div>
+      
+      <div *ngIf="planta.stock > 0" class="quantity-selector">
+        <button (click)="decrementarCantidad()" [disabled]="cantidad <= 1">-</button>
+        <span>{{ cantidad }}</span>
+        <button (click)="incrementarCantidad()" [disabled]="cantidad >= planta.stock">+</button>
+      </div>
+      
+      <button class="btn-add-cart" (click)="agregarAlCarrito()" [disabled]="planta.stock === 0">
+        {{ planta.stock > 0 ? 'Agregar al Carrito' : 'Sin Stock' }}
+      </button>
+      
+      <div class="plant-description">
+        <h3>Descripción</h3>
+        <p>{{ planta.descripcion }}</p>
+      </div>
+      
+      <div class="plant-care">
+        <h3>Cuidados</h3>
+        <div class="care-details">
+          <div class="care-item">
+            <i class="fas fa-sun" title="Nivel de luz"></i>
+            <span>{{ planta.nivelLuz }}</span>
+          </div>
+          <div class="care-item">
+            <i class="fas fa-tint" title="Frecuencia de riego"></i>
+            <span>{{ planta.frecuenciaRiego }}</span>
+          </div>
+          <div class="care-item">
+            <i class="fas fa-thermometer-half" title="Temperatura"></i>
+            <span *ngIf="planta.temperaturaMinC && planta.temperaturaMaxC">
+              {{ planta.temperaturaMinC }}°C - {{ planta.temperaturaMaxC }}°C
+            </span>
+            <span *ngIf="!planta.temperaturaMinC || !planta.temperaturaMaxC">
+              No especificada
+            </span>
+          </div>
+          <div class="care-item">
+            <i class="fas fa-seedling" title="Nivel de dificultad"></i>
+            <span>{{ planta.nivelDificultad }}</span>
+          </div>
+        </div>
+      </div>
+      
+      <div *ngIf="planta.beneficios && planta.beneficios.length > 0" class="plant-benefits">
+        <h3>Beneficios</h3>
+        <ul>
+          <li *ngFor="let beneficio of planta.beneficios">{{ beneficio }}</li>
+        </ul>
+      </div>
+      
+      <div class="plant-characteristics">
+        <h3>Características</h3>
+        <table>
+          <tr *ngIf="planta.alturaCm">
+            <td>Altura</td>
+            <td>{{ planta.alturaCm }} cm</td>
+          </tr>
+          <tr *ngIf="planta.anchoCm">
+            <td>Ancho</td>
+            <td>{{ planta.anchoCm }} cm</td>
+          </tr>
+          <tr *ngIf="planta.tipoHoja">
+            <td>Tipo de hoja</td>
+            <td>{{ planta.tipoHoja }}</td>
+          </tr>
+          <tr *ngIf="planta.colorHojas">
+            <td>Color de hojas</td>
+            <td>{{ planta.colorHojas }}</td>
+          </tr>
+          <tr *ngIf="planta.colorFlores">
+            <td>Color de flores</td>
+            <td>{{ planta.colorFlores }}</td>
+          </tr>
+          <tr *ngIf="planta.epocaFloracion">
+            <td>Época de floración</td>
+            <td>{{ planta.epocaFloracion }}</td>
+          </tr>
+          <tr *ngIf="planta.tipoSuelo">
+            <td>Tipo de suelo</td>
+            <td>{{ planta.tipoSuelo }}</td>
+          </tr>
+          <tr *ngIf="planta.humedadRequerida">
+            <td>Humedad requerida</td>
+            <td>{{ planta.humedadRequerida }}</td>
+          </tr>
+        </table>
+      </div>
+    </div>
+  </div>
+</div> 

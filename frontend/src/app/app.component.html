@@ -1,4 +1,30 @@
 <app-navbar></app-navbar>
+
 <main>
   <router-outlet></router-outlet>
 </main>
+
+<footer>
+  <div class="footer-content">
+    <div class="footer-section">
+      <h3>Verdalia</h3>
+      <p>Tu oasis de plantas con asistencia inteligente</p>
+    </div>
+    <div class="footer-section">
+      <h3>Enlaces</h3>
+      <ul>
+        <li><a routerLink="/">Inicio</a></li>
+        <li><a routerLink="/products">Plantas</a></li>
+        <li><a routerLink="/chat">Asistente</a></li>
+      </ul>
+    </div>
+    <div class="footer-section">
+      <h3>Contacto</h3>
+      <p>Email: info&#64;verdalia.com</p>
+      <p>Teléfono: +123 456 7890</p>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <p>&copy; {{ currentYear }} Verdalia - Todos los derechos reservados</p>
+  </div>
+</footer>

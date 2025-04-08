@@ -1,26 +1,55 @@
 <nav class="navbar">
-  <div class="navbar-brand">
-    <a routerLink="/" class="navbar-item">Mi Tienda</a>
-  </div>
+  <div class="navbar-container">
+    <div class="navbar-brand">
+      <a routerLink="/" class="logo">
+        <i class="fas fa-leaf"></i>
+        <span>Verdalia</span>
+      </a>
+      <button class="mobile-menu-btn" (click)="toggleMobileMenu()">
+        <i class="fas" [ngClass]="{'fa-bars': !mobileMenuOpen, 'fa-times': mobileMenuOpen}"></i>
+      </button>
+    </div>
 
-  <div class="navbar-menu">
-    <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}" class="navbar-item">Inicio</a>
-    <a routerLink="/products" routerLinkActive="active" class="navbar-item">Productos</a>
-    <a routerLink="/cart" routerLinkActive="active" class="navbar-item">Carrito</a>
-    <a routerLink="/chat" routerLinkActive="active" class="navbar-item">Chat</a>
-  </div>
+    <div class="navbar-menu" [ngClass]="{'active': mobileMenuOpen}">
+      <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}" class="navbar-item">Inicio</a>
+      <a routerLink="/products" routerLinkActive="active" class="navbar-item">Plantas</a>
+      <a routerLink="/chat" routerLinkActive="active" class="navbar-item">Asistente</a>
+      <a routerLink="/cart" routerLinkActive="active" class="navbar-item cart-icon">
+        <i class="fas fa-shopping-cart"></i>
+        <span class="cart-count" *ngIf="cartItemCount > 0">{{ cartItemCount }}</span>
+      </a>
+    </div>
 
-  <div class="navbar-end">
-    <!-- Opciones para usuarios no autenticados -->
-    <ng-container *ngIf="!isAuthenticated">
-      <a routerLink="/login" routerLinkActive="active" class="navbar-item">Iniciar Sesión</a>
-      <a routerLink="/register" routerLinkActive="active" class="navbar-item">Registrarse</a>
-    </ng-container>
+    <div class="navbar-end" [ngClass]="{'active': mobileMenuOpen}">
+      <!-- Opciones para usuarios no autenticados -->
+      <ng-container *ngIf="!isAuthenticated">
+        <a routerLink="/login" routerLinkActive="active" class="navbar-item login-btn">
+          <i class="fas fa-user"></i> Iniciar Sesión
+        </a>
+        <a routerLink="/register" routerLinkActive="active" class="navbar-item register-btn">Registrarse</a>
+      </ng-container>
 
-    <!-- Opciones para usuarios autenticados -->
-    <ng-container *ngIf="isAuthenticated">
-      <span class="navbar-item">Bienvenido, {{ userName }}</span>
-      <a (click)="logout()" class="navbar-item" style="cursor: pointer;">Cerrar Sesión</a>
-    </ng-container>
+      <!-- Opciones para usuarios autenticados -->
+      <ng-container *ngIf="isAuthenticated">
+        <div class="user-menu">
+          <button class="user-menu-btn" (click)="toggleUserMenu()">
+            <i class="fas fa-user-circle"></i>
+            <span>{{ userName }}</span>
+            <i class="fas fa-chevron-down"></i>
+          </button>
+          <div class="user-dropdown" [ngClass]="{'active': userMenuOpen}">
+            <a routerLink="/profile" class="dropdown-item">
+              <i class="fas fa-user-cog"></i> Mi Perfil
+            </a>
+            <a routerLink="/orders" class="dropdown-item">
+              <i class="fas fa-shopping-bag"></i> Mis Pedidos
+            </a>
+            <a (click)="logout()" class="dropdown-item logout">
+              <i class="fas fa-sign-out-alt"></i> Cerrar Sesión
+            </a>
+          </div>
+        </div>
+      </ng-container>
+    </div>
   </div>
 </nav>

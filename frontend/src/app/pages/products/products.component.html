@@ -1,8 +1,55 @@
 <div class="products-container">
-  <h2>Nuestros Productos</h2>
+  <h2>Nuestras Plantas</h2>
+
+  <!-- Filtros -->
+  <div class="filters-container">
+    <div class="filter-group">
+      <label for="tipoPlanta">Tipo de Planta:</label>
+      <select id="tipoPlanta" [(ngModel)]="filtros.tipoPlanta" (change)="aplicarFiltros()">
+        <option value="">Todos</option>
+        <option value="interior">Interior</option>
+        <option value="exterior">Exterior</option>
+        <option value="suculenta">Suculenta</option>
+        <option value="cactus">Cactus</option>
+        <option value="aromatica">Aromática</option>
+      </select>
+    </div>
+    
+    <div class="filter-group">
+      <label for="nivelLuz">Nivel de Luz:</label>
+      <select id="nivelLuz" [(ngModel)]="filtros.nivelLuz" (change)="aplicarFiltros()">
+        <option value="">Todos</option>
+        <option value="sombra">Sombra</option>
+        <option value="parcial">Luz parcial</option>
+        <option value="pleno">Pleno sol</option>
+      </select>
+    </div>
+    
+    <div class="filter-group">
+      <label for="nivelDificultad">Nivel de Dificultad:</label>
+      <select id="nivelDificultad" [(ngModel)]="filtros.nivelDificultad" (change)="aplicarFiltros()">
+        <option value="">Todos</option>
+        <option value="principiante">Principiante</option>
+        <option value="intermedio">Intermedio</option>
+        <option value="experto">Experto</option>
+      </select>
+    </div>
+    
+    <div class="filter-group">
+      <label for="frecuenciaRiego">Frecuencia de Riego:</label>
+      <select id="frecuenciaRiego" [(ngModel)]="filtros.frecuenciaRiego" (change)="aplicarFiltros()">
+        <option value="">Todos</option>
+        <option value="bajo">Bajo</option>
+        <option value="medio">Medio</option>
+        <option value="alto">Alto</option>
+      </select>
+    </div>
+    
+    <button class="btn-reset-filters" (click)="resetFiltros()">Limpiar Filtros</button>
+  </div>
 
   <div *ngIf="loading" class="loading">
-    Cargando productos...
+    Cargando plantas...
   </div>
 
   <div *ngIf="error" class="error">
@@ -10,19 +57,55 @@
   </div>
 
   <div *ngIf="!loading && !error" class="products-grid">
-    <div *ngFor="let producto of productos" class="product-card">
+    <div *ngFor="let producto of productosFiltrados" class="product-card">
       <div class="product-image" *ngIf="producto.imagen">
         <img [src]="producto.imagen" [alt]="producto.nombre">
       </div>
       <div class="product-info">
         <h3>{{ producto.nombre }}</h3>
+        <p *ngIf="producto.nombreCientifico" class="scientific-name"><em>{{ producto.nombreCientifico }}</em></p>
         <p class="description">{{ producto.descripcion }}</p>
+        
+        <div class="plant-details">
+          <div class="plant-care-icons">
+            <div class="care-icon" title="Nivel de luz">
+              <i class="fas fa-sun"></i> 
+              {{ producto.nivelLuz }}
+            </div>
+            <div class="care-icon" title="Frecuencia de riego">
+              <i class="fas fa-tint"></i> 
+              {{ producto.frecuenciaRiego }}
+            </div>
+            <div class="care-icon" title="Nivel de dificultad">
+              <i class="fas fa-seedling"></i> 
+              {{ producto.nivelDificultad }}
+            </div>
+          </div>
+          
+          <div class="plant-badges">
+            <span class="badge" [ngClass]="'badge-' + producto.tipoPlanta">{{ producto.tipoPlanta }}</span>
+            <span *ngIf="producto.toxicidad" class="badge badge-warning">{{ producto.toxicidad }}</span>
+          </div>
+        </div>
+        
         <p class="price">{{ formatPrice(producto.precio) }}</p>
-        <button class="btn-add-cart" (click)="addToCart(producto)">
+        <p class="stock" [ngClass]="{'out-of-stock': producto.stock === 0}">
+          {{ producto.stock > 0 ? 'En stock: ' + producto.stock : 'Sin stock' }}
+        </p>
+        
+        <button class="btn-add-cart" (click)="addToCart(producto)" [disabled]="producto.stock === 0">
           Agregar al Carrito
+        </button>
+        <button class="btn-view-details" (click)="verDetalles(producto)">
+          Ver Detalles
         </button>
       </div>
     </div>
+  </div>
+  
+  <!-- Mensaje si no hay resultados -->
+  <div *ngIf="!loading && !error && productosFiltrados.length === 0" class="no-results">
+    No se encontraron plantas con los filtros seleccionados.
   </div>
 </div>
 
