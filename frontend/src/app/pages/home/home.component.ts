@@ -31,7 +31,7 @@ export class HomeComponent implements OnInit {
       id: 'exterior',
       name: 'Plantas de Exterior',
       description: 'Ideales para jardines, terrazas y balcones.',
-      image: 'assets/images/optimized-categories/categories/exterior.jpg'
+      image: 'assets/images/optimized-categories/categories/exterior.jpeg'
     },
     {
       id: 'suculenta',
@@ -43,19 +43,19 @@ export class HomeComponent implements OnInit {
       id: 'cactus',
       name: 'Cactus',
       description: 'Ideales para espacios con poca agua y mucho sol.',
-      image: 'assets/images/optimized-categories/categories/interior.jpg'
+      image: 'assets/images/optimized-categories/categories/cactus.webp'
     },
     {
       id: 'orquidea',
       name: 'Orquídeas',
       description: 'Elegancia y belleza exótica para tu hogar.',
-      image: 'assets/images/optimized-categories/categories/exterior.jpg'
+      image: 'assets/images/optimized-categories/categories/orquidea.jpg'
     },
     {
       id: 'bonsai',
       name: 'Bonsáis',
       description: 'El arte milenario de miniaturizar árboles.',
-      image: 'assets/images/optimized-categories/categories/suculenta.jpg'
+      image: 'assets/images/optimized-categories/categories/bonsai.jpg'
     }
   ];
 
@@ -63,11 +63,11 @@ export class HomeComponent implements OnInit {
     interior: 'assets/images/optimized-categories/categories/interior.jpg',
     exterior: 'assets/images/optimized-categories/categories/exterior.jpg',
     suculenta: 'assets/images/optimized-categories/categories/suculenta.jpg',
-    cactus: 'assets/images/optimized-categories/categories/interior.jpg',
-    orquidea: 'assets/images/optimized-categories/categories/exterior.jpg',
-    bonsai: 'assets/images/optimized-categories/categories/suculenta.jpg'
+    cactus: 'assets/images/optimized-categories/categories/cactus.jpg',
+    orquidea: 'assets/images/optimized-categories/categories/orquidea.jpg',
+    bonsai: 'assets/images/optimized-categories/categories/bonsai.jpg'
   };
-  
+    
   ngOnInit(): void {
     // Verificar la existencia de las imágenes
     this.categories.forEach(category => {
@@ -90,7 +90,7 @@ export class HomeComponent implements OnInit {
 
   setDefaultImage(failedImageSrc: string): void {
     // Establecer una imagen por defecto para la categoría que falló
-    const defaultImage = 'assets/images/optimized-categories/categories/interior.jpg';
+    const defaultImage = 'assets/images/optimized-categories/categories/test_image.jpg' ;
     (Object.keys(this.imagePath) as Array<keyof typeof this.imagePath>).forEach(key => {
       if (this.imagePath[key] === failedImageSrc) {
         this.imagePath[key] = defaultImage;
