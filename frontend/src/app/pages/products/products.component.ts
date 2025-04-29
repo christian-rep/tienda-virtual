@@ -1,23 +1,30 @@
 import { Component, OnInit } from '@angular/core';
 import { ProductsService } from '../../services/products.service';
 import { CartService } from '../../services/cart.service';
-import { NgFor, NgIf, NgClass } from '@angular/common';
+import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
 import { Product } from '../../interfaces/product.interface';
 
 interface Filtros {
-  tipoPlanta: string;
-  nivelLuz: string;
-  nivelDificultad: string;
-  frecuenciaRiego: string;
+  categoria?: string;
+  dificultad?: 'facil' | 'medio' | 'dificil';
+  precio_min?: number;
+  precio_max?: number;
+}
+
+interface QueryParams {
+  categoria?: string;
+  dificultad?: string;
+  precio_min?: string;
+  precio_max?: string;
 }
 
 @Component({
   selector: 'app-products',
   templateUrl: './products.component.html',
   styleUrls: ['./products.component.scss'],
-  imports: [NgFor, NgIf, NgClass, FormsModule],
+  imports: [CommonModule, FormsModule],
   standalone: true
 })
 export class ProductsComponent implements OnInit {
@@ -26,12 +33,21 @@ export class ProductsComponent implements OnInit {
   error: string = '';
   loading: boolean = true;
   
+  // Filtros actualizados
   filtros: Filtros = {
-    tipoPlanta: '',
-    nivelLuz: '',
-    nivelDificultad: '',
-    frecuenciaRiego: ''
+    categoria: '',
+    dificultad: undefined,
+    precio_min: undefined,
+    precio_max: undefined
   };
+
+  // Opciones para los selectores de filtros
+  categorias: {id: number, nombre: string}[] = [];
+  nivelesDificultad = [
+    {value: 'facil', label: 'Fácil'},
+    {value: 'medio', label: 'Medio'},
+    {value: 'dificil', label: 'Difícil'}
+  ];
 
   constructor(
     private productsService: ProductsService,
@@ -41,14 +57,24 @@ export class ProductsComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    // Primero cargar todos los productos
     this.loadProducts();
+    this.loadCategorias();
     
-    // Luego verificar si hay parámetros de consulta (filtros desde la URL)
-    this.route.queryParams.subscribe(params => {
-      if (params['tipoPlanta']) {
-        this.filtros.tipoPlanta = params['tipoPlanta'];
-        // Aplicar el filtro después de cargar los productos
+    this.route.queryParams.subscribe((params: QueryParams) => {
+      if (params['categoria']) {
+        this.filtros.categoria = params['categoria'];
+      }
+      if (params['dificultad']) {
+        this.filtros.dificultad = params['dificultad'] as 'facil' | 'medio' | 'dificil';
+      }
+      if (params['precio_min']) {
+        this.filtros.precio_min = Number(params['precio_min']);
+      }
+      if (params['precio_max']) {
+        this.filtros.precio_max = Number(params['precio_max']);
+      }
+      
+      if (Object.values(this.filtros).some(value => !!value)) {
         this.aplicarFiltrosDesdeURL();
       }
     });
@@ -56,15 +82,19 @@ export class ProductsComponent implements OnInit {
 
   loadProducts(): void {
     this.loading = true;
+    this.error = '';
+    
     this.productsService.getProducts().subscribe({
       next: (data) => {
-        console.log("Plantas obtenidas:", data);
-        this.productos = data;
-        this.productosFiltrados = [...this.productos];
+        if (!data || data.length === 0) {
+          this.error = 'No hay plantas disponibles en este momento.';
+        } else {
+          this.productos = data;
+          this.productosFiltrados = [...this.productos];
+        }
         this.loading = false;
         
-        // Verificar si hay filtros en la URL a aplicar
-        if (this.filtros.tipoPlanta) {
+        if (this.filtros.categoria || this.filtros.dificultad) {
           this.aplicarFiltrosDesdeURL();
         }
       },
@@ -72,12 +102,26 @@ export class ProductsComponent implements OnInit {
         console.error('Error al obtener plantas:', error);
         this.error = 'Error al cargar las plantas. Por favor, intente más tarde.';
         this.loading = false;
+        this.productos = [];
+        this.productosFiltrados = [];
+      }
+    });
+  }
+
+  loadCategorias(): void {
+    this.productsService.getCategories().subscribe({
+      next: (data) => {
+        this.categorias = data;
+        console.log('Categorías cargadas:', this.categorias);
+      },
+      error: (error) => {
+        console.error('Error al cargar categorías:', error);
+        this.error = 'Error al cargar las categorías. Por favor, intente más tarde.';
       }
     });
   }
 
   aplicarFiltrosDesdeURL(): void {
-    // Esta función aplica los filtros que vienen desde la URL
     this.loading = true;
     this.productsService.filterProducts(this.filtros).subscribe({
       next: (data) => {
@@ -88,28 +132,31 @@ export class ProductsComponent implements OnInit {
         console.error('Error al filtrar plantas:', error);
         this.error = 'Error al filtrar las plantas. Por favor, intente más tarde.';
         this.loading = false;
-        // En caso de error, volver a los productos sin filtrar
         this.productosFiltrados = [...this.productos];
       }
     });
   }
 
   aplicarFiltros(): void {
-    // Verificar si hay filtros seleccionados
-    const hayFiltros = Object.values(this.filtros).some(value => !!value);
+    const hayFiltros = Object.values(this.filtros).some(value => value !== undefined && value !== '');
     
     if (hayFiltros) {
-      // Si hay filtros, usar la API de filtrado
       this.loading = true;
       this.productsService.filterProducts(this.filtros).subscribe({
         next: (data) => {
           this.productosFiltrados = data;
           this.loading = false;
           
-          // Actualizar los parámetros de la URL para reflejar los filtros
+          // Actualizar URL con los filtros actuales
+          const queryParams: QueryParams = {};
+          if (this.filtros.categoria) queryParams['categoria'] = this.filtros.categoria;
+          if (this.filtros.dificultad) queryParams['dificultad'] = this.filtros.dificultad;
+          if (this.filtros.precio_min !== undefined) queryParams['precio_min'] = this.filtros.precio_min.toString();
+          if (this.filtros.precio_max !== undefined) queryParams['precio_max'] = this.filtros.precio_max.toString();
+
           this.router.navigate([], {
             relativeTo: this.route,
-            queryParams: this.getQueryParams(),
+            queryParams: queryParams,
             queryParamsHandling: 'merge'
           });
         },
@@ -117,12 +164,10 @@ export class ProductsComponent implements OnInit {
           console.error('Error al filtrar plantas:', error);
           this.error = 'Error al filtrar las plantas. Por favor, intente más tarde.';
           this.loading = false;
-          // En caso de error, volver a los productos sin filtrar
           this.productosFiltrados = [...this.productos];
         }
       });
     } else {
-      // Si no hay filtros, mostrar todos los productos y limpiar la URL
       this.productosFiltrados = [...this.productos];
       this.router.navigate([], {
         relativeTo: this.route,
@@ -133,29 +178,17 @@ export class ProductsComponent implements OnInit {
 
   resetFiltros(): void {
     this.filtros = {
-      tipoPlanta: '',
-      nivelLuz: '',
-      nivelDificultad: '',
-      frecuenciaRiego: ''
+      categoria: '',
+      dificultad: undefined,
+      precio_min: undefined,
+      precio_max: undefined
     };
     this.productosFiltrados = [...this.productos];
     
-    // Limpiar los parámetros de la URL
     this.router.navigate([], {
       relativeTo: this.route,
       queryParams: {}
     });
-  }
-
-  // Función auxiliar para obtener los parámetros de consulta no vacíos
-  private getQueryParams(): any {
-    const params: any = {};
-    Object.entries(this.filtros).forEach(([key, value]) => {
-      if (value) {
-        params[key] = value;
-      }
-    });
-    return params;
   }
 
   addToCart(product: Product): void {
@@ -168,11 +201,31 @@ export class ProductsComponent implements OnInit {
     this.router.navigate(['/planta', product.id]);
   }
 
-  // Función auxiliar para formatear precios
   formatPrice(price: number): string {
     return new Intl.NumberFormat('es-AR', {
       style: 'currency',
       currency: 'ARS'
     }).format(price);
+  }
+
+  // Función para obtener la imagen principal o una por defecto
+  getProductImage(product: Product): string {
+    return product.imagen_principal || 'assets/images/planta-default.jpg';
+  }
+
+  // Función para obtener el nombre de la categoría
+  getCategoryName(categoryId: number): string {
+    const categoria = this.categorias.find(cat => cat.id === categoryId);
+    return categoria ? categoria.nombre : 'Sin categoría';
+  }
+
+  getToxicidadNivel(toxicidades: { nivel: string; descripcion: string; detalles?: string }[] | undefined): string {
+    if (!toxicidades || toxicidades.length === 0) return '';
+    return toxicidades[0].nivel;
+  }
+
+  getToxicidadDescripcion(toxicidades: { nivel: string; descripcion: string; detalles?: string }[] | undefined): string {
+    if (!toxicidades || toxicidades.length === 0) return '';
+    return toxicidades[0].descripcion;
   }
 }

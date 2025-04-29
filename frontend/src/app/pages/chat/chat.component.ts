@@ -86,84 +86,23 @@ export class ChatComponent implements OnInit {
     // Si hay pocas plantas, podemos permitirnos hacer una búsqueda completa en el cliente
     let plantasRecomendadas: Product[] = [];
 
-    // Buscar por tipo de planta
-    if (query.includes('interior') || query.includes('para casa') || query.includes('dentro')) {
-      plantasRecomendadas = this.plantas.filter(planta => planta.tipoPlanta === 'interior');
-    } else if (query.includes('exterior') || query.includes('jardín') || query.includes('jardines') || query.includes('patio')) {
-      plantasRecomendadas = this.plantas.filter(planta => planta.tipoPlanta === 'exterior');
-    } else if (query.includes('suculenta') || query.includes('suculentas')) {
-      plantasRecomendadas = this.plantas.filter(planta => planta.tipoPlanta === 'suculenta');
-    } else if (query.includes('cactus')) {
-      plantasRecomendadas = this.plantas.filter(planta => planta.tipoPlanta === 'cactus');
-    } else if (query.includes('aromática') || query.includes('aromáticas') || query.includes('aromatica') || query.includes('aromaticas')) {
-      plantasRecomendadas = this.plantas.filter(planta => planta.tipoPlanta === 'aromatica');
-    }
-
-    // Buscar por nivel de luz
-    if (query.includes('poca luz') || query.includes('sombra') || query.includes('oscuro') || query.includes('oscura')) {
-      const filtradas = this.plantas.filter(planta => planta.nivelLuz === 'sombra');
-      if (plantasRecomendadas.length > 0) {
-        plantasRecomendadas = plantasRecomendadas.filter(planta => filtradas.some(p => p.id === planta.id));
-      } else {
-        plantasRecomendadas = filtradas;
-      }
-    } else if (query.includes('luz parcial') || query.includes('semi sombra') || query.includes('semisombra')) {
-      const filtradas = this.plantas.filter(planta => planta.nivelLuz === 'parcial');
-      if (plantasRecomendadas.length > 0) {
-        plantasRecomendadas = plantasRecomendadas.filter(planta => filtradas.some(p => p.id === planta.id));
-      } else {
-        plantasRecomendadas = filtradas;
-      }
-    } else if (query.includes('mucha luz') || query.includes('sol directo') || query.includes('pleno sol')) {
-      const filtradas = this.plantas.filter(planta => planta.nivelLuz === 'pleno');
-      if (plantasRecomendadas.length > 0) {
-        plantasRecomendadas = plantasRecomendadas.filter(planta => filtradas.some(p => p.id === planta.id));
-      } else {
-        plantasRecomendadas = filtradas;
-      }
-    }
-
     // Buscar por dificultad
     if (query.includes('principiante') || query.includes('fácil') || query.includes('facil') || query.includes('nueva') || query.includes('empezar')) {
-      const filtradas = this.plantas.filter(planta => planta.nivelDificultad === 'principiante');
+      const filtradas = this.plantas.filter(planta => planta.nivel_dificultad === 'facil');
       if (plantasRecomendadas.length > 0) {
         plantasRecomendadas = plantasRecomendadas.filter(planta => filtradas.some(p => p.id === planta.id));
       } else {
         plantasRecomendadas = filtradas;
       }
     } else if (query.includes('intermedio') || query.includes('experiencia')) {
-      const filtradas = this.plantas.filter(planta => planta.nivelDificultad === 'intermedio');
+      const filtradas = this.plantas.filter(planta => planta.nivel_dificultad === 'medio');
       if (plantasRecomendadas.length > 0) {
         plantasRecomendadas = plantasRecomendadas.filter(planta => filtradas.some(p => p.id === planta.id));
       } else {
         plantasRecomendadas = filtradas;
       }
     } else if (query.includes('avanzado') || query.includes('experto') || query.includes('difícil') || query.includes('dificil')) {
-      const filtradas = this.plantas.filter(planta => planta.nivelDificultad === 'experto');
-      if (plantasRecomendadas.length > 0) {
-        plantasRecomendadas = plantasRecomendadas.filter(planta => filtradas.some(p => p.id === planta.id));
-      } else {
-        plantasRecomendadas = filtradas;
-      }
-    }
-
-    // Búsqueda por frecuencia de riego
-    if (query.includes('poco riego') || query.includes('olvidar regar') || query.includes('riego escaso')) {
-      const filtradas = this.plantas.filter(planta => planta.frecuenciaRiego === 'bajo');
-      if (plantasRecomendadas.length > 0) {
-        plantasRecomendadas = plantasRecomendadas.filter(planta => filtradas.some(p => p.id === planta.id));
-      } else {
-        plantasRecomendadas = filtradas;
-      }
-    } else if (query.includes('riego medio') || query.includes('regar ocasionalmente')) {
-      const filtradas = this.plantas.filter(planta => planta.frecuenciaRiego === 'medio');
-      if (plantasRecomendadas.length > 0) {
-        plantasRecomendadas = plantasRecomendadas.filter(planta => filtradas.some(p => p.id === planta.id));
-      } else {
-        plantasRecomendadas = filtradas;
-      }
-    } else if (query.includes('mucho riego') || query.includes('regar frecuentemente') || query.includes('riego constante')) {
-      const filtradas = this.plantas.filter(planta => planta.frecuenciaRiego === 'alto');
+      const filtradas = this.plantas.filter(planta => planta.nivel_dificultad === 'dificil');
       if (plantasRecomendadas.length > 0) {
         plantasRecomendadas = plantasRecomendadas.filter(planta => filtradas.some(p => p.id === planta.id));
       } else {
@@ -179,7 +118,7 @@ export class ChatComponent implements OnInit {
         plantasRecomendadas = this.plantas.filter(planta => {
           const nombreMatches = planta.nombre.toLowerCase().split(' ').some(palabra => palabrasClave.includes(palabra));
           const descripcionMatches = palabrasClave.some(palabra => planta.descripcion.toLowerCase().includes(palabra));
-          const nombreCientificoMatches = planta.nombreCientifico ? planta.nombreCientifico.toLowerCase().split(' ').some(palabra => palabrasClave.includes(palabra)) : false;
+          const nombreCientificoMatches = planta.nombre_cientifico ? planta.nombre_cientifico.toLowerCase().split(' ').some(palabra => palabrasClave.includes(palabra)) : false;
           
           return nombreMatches || descripcionMatches || nombreCientificoMatches;
         });
@@ -195,7 +134,7 @@ export class ChatComponent implements OnInit {
     if (plantasRecomendadas.length > 0) {
       botResponse = `He encontrado ${plantasRecomendadas.length} plantas que podrían interesarte según tu consulta. Te las muestro a continuación:`;
     } else {
-      botResponse = 'No he encontrado plantas que coincidan exactamente con tu consulta. Te sugiero revisar nuestro catálogo completo o intentar con diferentes criterios de búsqueda. También puedes preguntar por ejemplo: "plantas de interior para principiantes" o "plantas que requieran poca luz".';
+      botResponse = 'No he encontrado plantas que coincidan exactamente con tu consulta. Te sugiero revisar nuestro catálogo completo o intentar con diferentes criterios de búsqueda. También puedes preguntar por ejemplo: "plantas para principiantes" o "plantas de nivel fácil".';
       
       // Recomendar algunas plantas al azar como alternativa
       plantasRecomendadas = this.getRandomPlantas(3);

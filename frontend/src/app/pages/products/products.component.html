@@ -1,96 +1,103 @@
 <div class="products-container">
   <h2>Nuestras Plantas</h2>
 
-  <!-- Filtros -->
+  <!-- Filtros actualizados -->
   <div class="filters-container">
     <div class="filter-group">
-      <label for="tipoPlanta">Tipo de Planta:</label>
-      <select id="tipoPlanta" [(ngModel)]="filtros.tipoPlanta" (change)="aplicarFiltros()">
-        <option value="">Todos</option>
-        <option value="interior">Interior</option>
-        <option value="exterior">Exterior</option>
-        <option value="suculenta">Suculenta</option>
-        <option value="cactus">Cactus</option>
-        <option value="aromatica">Aromática</option>
+      <label for="categoria">Categoría:</label>
+      <select id="categoria" [(ngModel)]="filtros.categoria" (change)="aplicarFiltros()">
+        <option value="">Todas las categorías</option>
+        <option *ngFor="let cat of categorias" [value]="cat.id">{{ cat.nombre }}</option>
       </select>
     </div>
     
     <div class="filter-group">
-      <label for="nivelLuz">Nivel de Luz:</label>
-      <select id="nivelLuz" [(ngModel)]="filtros.nivelLuz" (change)="aplicarFiltros()">
-        <option value="">Todos</option>
-        <option value="sombra">Sombra</option>
-        <option value="parcial">Luz parcial</option>
-        <option value="pleno">Pleno sol</option>
-      </select>
-    </div>
-    
-    <div class="filter-group">
-      <label for="nivelDificultad">Nivel de Dificultad:</label>
-      <select id="nivelDificultad" [(ngModel)]="filtros.nivelDificultad" (change)="aplicarFiltros()">
-        <option value="">Todos</option>
-        <option value="principiante">Principiante</option>
-        <option value="intermedio">Intermedio</option>
-        <option value="experto">Experto</option>
-      </select>
-    </div>
-    
-    <div class="filter-group">
-      <label for="frecuenciaRiego">Frecuencia de Riego:</label>
-      <select id="frecuenciaRiego" [(ngModel)]="filtros.frecuenciaRiego" (change)="aplicarFiltros()">
-        <option value="">Todos</option>
-        <option value="bajo">Bajo</option>
+      <label for="dificultad">Nivel de Dificultad:</label>
+      <select id="dificultad" [(ngModel)]="filtros.dificultad" (change)="aplicarFiltros()">
+        <option value="">Todos los niveles</option>
+        <option value="facil">Fácil</option>
         <option value="medio">Medio</option>
-        <option value="alto">Alto</option>
+        <option value="dificil">Difícil</option>
       </select>
     </div>
+
+    <div class="filter-group">
+      <label>Rango de Precio:</label>
+      <div class="price-range">
+        <input type="number" 
+               [(ngModel)]="filtros.precio_min" 
+               (change)="aplicarFiltros()"
+               placeholder="Mínimo"
+               min="0">
+        <span>-</span>
+        <input type="number" 
+               [(ngModel)]="filtros.precio_max" 
+               (change)="aplicarFiltros()"
+               placeholder="Máximo"
+               min="0">
+      </div>
+    </div>
     
-    <button class="btn-reset-filters" (click)="resetFiltros()">Limpiar Filtros</button>
+    <div class="filter-buttons">
+      <button class="btn-apply-filters" (click)="aplicarFiltros()">
+        <i class="fas fa-filter"></i> Aplicar Filtros
+      </button>
+      <button class="btn-reset-filters" (click)="resetFiltros()">
+        <i class="fas fa-times"></i> Limpiar Filtros
+      </button>
+    </div>
   </div>
 
   <div *ngIf="loading" class="loading">
-    Cargando plantas...
+    <div class="spinner"></div>
+    <p>Cargando plantas...</p>
   </div>
 
   <div *ngIf="error" class="error">
-    {{ error }}
+    <i class="fas fa-exclamation-circle"></i>
+    <p>{{ error }}</p>
+    <button class="btn-retry" (click)="loadProducts()">Reintentar</button>
   </div>
 
   <div *ngIf="!loading && !error" class="products-grid">
     <div *ngFor="let producto of productosFiltrados" class="product-card">
-      <div class="product-image" *ngIf="producto.imagen">
-        <img [src]="producto.imagen" [alt]="producto.nombre">
+      <div class="product-image">
+        <img [src]="getProductImage(producto)" [alt]="producto.nombre">
       </div>
       <div class="product-info">
         <h3>{{ producto.nombre }}</h3>
-        <p *ngIf="producto.nombreCientifico" class="scientific-name"><em>{{ producto.nombreCientifico }}</em></p>
+        <p *ngIf="producto.nombre_cientifico" class="scientific-name"><em>{{ producto.nombre_cientifico }}</em></p>
         <p class="description">{{ producto.descripcion }}</p>
         
         <div class="plant-details">
           <div class="plant-care-icons">
-            <div class="care-icon" title="Nivel de luz">
-              <i class="fas fa-sun"></i> 
-              {{ producto.nivelLuz }}
-            </div>
-            <div class="care-icon" title="Frecuencia de riego">
-              <i class="fas fa-tint"></i> 
-              {{ producto.frecuenciaRiego }}
-            </div>
             <div class="care-icon" title="Nivel de dificultad">
               <i class="fas fa-seedling"></i> 
-              {{ producto.nivelDificultad }}
+              {{ producto.nivel_dificultad | titlecase }}
+            </div>
+            <div class="care-icon" title="Stock disponible">
+              <i class="fas fa-box-open"></i> 
+              {{ producto.stock }} unidades
             </div>
           </div>
           
           <div class="plant-badges">
-            <span class="badge" [ngClass]="'badge-' + producto.tipoPlanta">{{ producto.tipoPlanta }}</span>
-            <span *ngIf="producto.toxicidad" class="badge badge-warning">{{ producto.toxicidad }}</span>
+            <ng-container *ngIf="producto.categorias?.length">
+              <span *ngFor="let cat of producto.categorias" class="badge">
+                {{ getCategoryName(cat) }}
+              </span>
+            </ng-container>
+            <span *ngIf="getToxicidadNivel(producto.toxicidades)" 
+                  class="badge badge-warning"
+                  [title]="getToxicidadDescripcion(producto.toxicidades)">
+              {{ getToxicidadNivel(producto.toxicidades) }}
+            </span>
           </div>
         </div>
         
         <p class="price">{{ formatPrice(producto.precio) }}</p>
         <p class="stock" [ngClass]="{'out-of-stock': producto.stock === 0}">
-          {{ producto.stock > 0 ? 'En stock: ' + producto.stock : 'Sin stock' }}
+          {{ producto.stock > 0 ? 'En stock' : 'Sin stock' }}
         </p>
         
         <button class="btn-add-cart" (click)="addToCart(producto)" [disabled]="producto.stock === 0">
@@ -105,7 +112,8 @@
   
   <!-- Mensaje si no hay resultados -->
   <div *ngIf="!loading && !error && productosFiltrados.length === 0" class="no-results">
-    No se encontraron plantas con los filtros seleccionados.
+    <i class="fas fa-search"></i>
+    <p>No se encontraron plantas con los filtros seleccionados.</p>
+    <button class="btn-reset-filters" (click)="resetFiltros()">Limpiar Filtros</button>
   </div>
 </div>
-
