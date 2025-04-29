@@ -9,8 +9,8 @@
   <div *ngIf="cartItems.length > 0" class="cart-content">
     <div class="cart-items">
       <div *ngFor="let item of cartItems" class="cart-item">
-        <div class="item-image" *ngIf="item.product.imagen">
-          <img [src]="item.product.imagen" [alt]="item.product.nombre">
+        <div class="item-image" *ngIf="item.product.imagen_principal">
+          <img [src]="item.product.imagen_principal" [alt]="item.product.nombre">
         </div>
         <div class="item-details">
           <h3>{{ item.product.nombre }}</h3>

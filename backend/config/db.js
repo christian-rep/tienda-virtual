@@ -4,7 +4,7 @@ const db = mysql.createPool({
   host: process.env.DB_HOST || 'localhost',
   user: process.env.DB_USER || 'root',
   password: process.env.DB_PASSWORD || 'alkFCx1OXCAjlK4j87Vy',
-  database: process.env.DB_NAME || 'tienda_virtual',
+  database: process.env.DB_NAME || 'tienda_bd',
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0

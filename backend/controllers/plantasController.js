@@ -1,31 +1,45 @@
 const db = require('../config/db');
 const { v4: uuidv4 } = require('uuid');
 
-// Obtener todas las plantas
+// Obtener todas las plantas con sus relaciones
 const getPlantas = async (req, res, next) => {
     try {
-        const [plantas] = await db.query('SELECT * FROM plantas');
+        console.log('Iniciando consulta de plantas...');
         
-        // Convertir el campo beneficios de texto a array si existe
-        plantas.forEach(planta => {
-            if (planta.beneficios) {
-                planta.beneficios = planta.beneficios.split(',').map(b => b.trim());
-            } else {
-                planta.beneficios = [];
-            }
-        });
+        // Consulta principal para obtener plantas
+        const [plantas] = await db.query(`
+            SELECT p.*
+            FROM plantas p
+        `);
         
+        console.log(`Se encontraron ${plantas.length} plantas`);
         res.json(plantas);
     } catch (error) {
-        next(error);
+        console.error('Error detallado en getPlantas:', error);
+        res.status(500).json({ 
+            error: 'Error al obtener las plantas',
+            message: error.message,
+            stack: error.stack
+        });
     }
 };
 
-// Obtener una planta por ID
+// Obtener una planta por ID con todas sus relaciones
 const getPlantaById = async (req, res, next) => {
     try {
         const { id } = req.params;
-        const [plantas] = await db.query('SELECT * FROM plantas WHERE id = ?', [id]);
+        
+        // Consulta principal
+        const [plantas] = await db.query(`
+            SELECT p.*, 
+                   GROUP_CONCAT(DISTINCT pc.id_categoria) AS categorias,
+                   GROUP_CONCAT(DISTINCT pt.toxicidad_id) AS toxicidades
+            FROM plantas p
+            LEFT JOIN plantas_categorias pc ON p.id = pc.planta_id
+            LEFT JOIN planta_toxicidad pt ON p.id = pt.planta_id
+            WHERE p.id = ?
+            GROUP BY p.id
+        `, [id]);
         
         if (plantas.length === 0) {
             return res.status(404).json({ error: 'Planta no encontrada' });
@@ -33,12 +47,32 @@ const getPlantaById = async (req, res, next) => {
         
         const planta = plantas[0];
         
-        // Convertir el campo beneficios de texto a array si existe
-        if (planta.beneficios) {
-            planta.beneficios = planta.beneficios.split(',').map(b => b.trim());
-        } else {
-            planta.beneficios = [];
-        }
+        // Obtener todas las imágenes
+        const [imagenes] = await db.query(
+            'SELECT * FROM imagenes_plantas WHERE planta_id = ? ORDER BY es_principal DESC, orden',
+            [id]
+        );
+        
+        // Obtener detalles de toxicidad
+        const [toxicidades] = await db.query(`
+            SELECT t.nivel, t.descripcion, pt.detalles 
+            FROM toxicidad t
+            JOIN planta_toxicidad pt ON t.id = pt.toxicidad_id
+            WHERE pt.planta_id = ?
+        `, [id]);
+        
+        // Obtener categorías con nombres
+        const [categorias] = await db.query(`
+            SELECT c.id, c.nombre 
+            FROM categorias c
+            JOIN plantas_categorias pc ON c.id = pc.id_categoria
+            WHERE pc.planta_id = ?
+        `, [id]);
+        
+        // Estructurar los datos de respuesta
+        planta.imagenes = imagenes;
+        planta.toxicidades = toxicidades;
+        planta.categorias = categorias;
         
         res.json(planta);
     } catch (error) {
@@ -46,81 +80,89 @@ const getPlantaById = async (req, res, next) => {
     }
 };
 
-// Crear una nueva planta
+// Crear una nueva planta con sus relaciones
 const createPlanta = async (req, res, next) => {
     try {
         const {
-            nombre, nombreCientifico, descripcion, precio, imagen,
-            tipoPlanta, alturaCm, anchoCm, tipoHoja, colorHojas, colorFlores, epocaFloracion,
-            tipoSuelo, nivelLuz, frecuenciaRiego, temperaturaMinC, temperaturaMaxC, humedadRequerida,
-            beneficios, toxicidad, nivelDificultad, stock
+            nombre, 
+            nombre_cientifico, 
+            descripcion, 
+            precio, 
+            nivel_dificultad, 
+            stock,
+            categorias = [],
+            toxicidades = [],
+            imagenes = []
         } = req.body;
         
         // Validaciones básicas
-        if (!nombre) {
-            return res.status(400).json({ error: 'El nombre es obligatorio' });
-        }
-        if (!descripcion) {
-            return res.status(400).json({ error: 'La descripción es obligatoria' });
-        }
-        if (!precio || isNaN(precio)) {
-            return res.status(400).json({ error: 'El precio debe ser un número válido' });
-        }
-        if (!tipoPlanta) {
-            return res.status(400).json({ error: 'El tipo de planta es obligatorio' });
-        }
-        if (!nivelLuz) {
-            return res.status(400).json({ error: 'El nivel de luz es obligatorio' });
-        }
-        if (!frecuenciaRiego) {
-            return res.status(400).json({ error: 'La frecuencia de riego es obligatoria' });
-        }
-        if (!nivelDificultad) {
-            return res.status(400).json({ error: 'El nivel de dificultad es obligatorio' });
+        if (!nombre || !descripcion || !precio || !nivel_dificultad) {
+            return res.status(400).json({ error: 'Faltan campos obligatorios' });
         }
         
-        // Convertir el array de beneficios a texto si existe
-        const beneficiosStr = beneficios ? 
-            (Array.isArray(beneficios) ? beneficios.join(', ') : beneficios) : null;
-        
-        // Generar un ID único
-        const id = uuidv4();
-        
-        // Insertar la planta en la base de datos
+        // Crear la planta principal
+        const plantaId = uuidv4();
         await db.query(
-            `INSERT INTO plantas (
-                id, nombre, nombreCientifico, descripcion, precio, imagen,
-                tipoPlanta, alturaCm, anchoCm, tipoHoja, colorHojas, colorFlores, epocaFloracion,
-                tipoSuelo, nivelLuz, frecuenciaRiego, temperaturaMinC, temperaturaMaxC, humedadRequerida,
-                beneficios, toxicidad, nivelDificultad, stock
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [
-                id, nombre, nombreCientifico, descripcion, precio, imagen,
-                tipoPlanta, alturaCm, anchoCm, tipoHoja, colorHojas, colorFlores, epocaFloracion,
-                tipoSuelo, nivelLuz, frecuenciaRiego, temperaturaMinC, temperaturaMaxC, humedadRequerida,
-                beneficiosStr, toxicidad, nivelDificultad, stock || 0
-            ]
+            `INSERT INTO plantas 
+             (id, nombre, nombre_cientifico, descripcion, precio, nivel_dificultad, stock) 
+             VALUES (?, ?, ?, ?, ?, ?, ?)`,
+            [plantaId, nombre, nombre_cientifico, descripcion, precio, nivel_dificultad, stock || 0]
         );
         
+        // Procesar categorías
+        if (categorias.length > 0) {
+            const categoriasValues = categorias.map(catId => [plantaId, catId]);
+            await db.query(
+                'INSERT INTO plantas_categorias (planta_id, id_categoria) VALUES ?',
+                [categoriasValues]
+            );
+        }
+        
+        // Procesar toxicidades
+        if (toxicidades.length > 0) {
+            const toxicidadesValues = toxicidades.map(t => [plantaId, t.id, t.detalles]);
+            await db.query(
+                'INSERT INTO planta_toxicidad (planta_id, toxicidad_id, detalles) VALUES ?',
+                [toxicidadesValues]
+            );
+        }
+        
+        // Procesar imágenes
+        if (imagenes.length > 0) {
+            const imagenesValues = imagenes.map((img, index) => 
+                [plantaId, img.url, index, img.es_principal || 0]
+            );
+            await db.query(
+                `INSERT INTO imagenes_plantas 
+                 (planta_id, url, orden, es_principal) VALUES ?`,
+                [imagenesValues]
+            );
+        }
+        
         res.status(201).json({
-            id,
+            id: plantaId,
             nombre,
-            mensaje: 'Planta creada exitosamente'
+            message: 'Planta creada exitosamente'
         });
     } catch (error) {
         next(error);
     }
 };
 
-// Actualizar una planta
+// Actualizar una planta y sus relaciones
 const updatePlanta = async (req, res, next) => {
     try {
         const { id } = req.params;
         const {
-            nombre, nombreCientifico, descripcion, precio, imagen,
-            tipoPlanta, alturaCm, anchoCm, tipoHoja, colorHojas, colorFlores, epocaFloracion,
-            tipoSuelo, nivelLuz, frecuenciaRiego, temperaturaMinC, temperaturaMaxC, humedadRequerida,
-            beneficios, toxicidad, nivelDificultad, stock
+            nombre, 
+            nombre_cientifico, 
+            descripcion, 
+            precio, 
+            nivel_dificultad, 
+            stock,
+            categorias = [],
+            toxicidades = [],
+            imagenes = []
         } = req.body;
         
         // Verificar si la planta existe
@@ -129,54 +171,52 @@ const updatePlanta = async (req, res, next) => {
             return res.status(404).json({ error: 'Planta no encontrada' });
         }
         
-        // Convertir el array de beneficios a texto si existe
-        const beneficiosStr = beneficios ? 
-            (Array.isArray(beneficios) ? beneficios.join(', ') : beneficios) : null;
-        
-        // Actualizar la planta
+        // Actualizar datos básicos de la planta
         await db.query(
             `UPDATE plantas SET
-                nombre = COALESCE(?, nombre),
-                nombreCientifico = COALESCE(?, nombreCientifico),
-                descripcion = COALESCE(?, descripcion),
-                precio = COALESCE(?, precio),
-                imagen = COALESCE(?, imagen),
-                tipoPlanta = COALESCE(?, tipoPlanta),
-                alturaCm = COALESCE(?, alturaCm),
-                anchoCm = COALESCE(?, anchoCm),
-                tipoHoja = COALESCE(?, tipoHoja),
-                colorHojas = COALESCE(?, colorHojas),
-                colorFlores = COALESCE(?, colorFlores),
-                epocaFloracion = COALESCE(?, epocaFloracion),
-                tipoSuelo = COALESCE(?, tipoSuelo),
-                nivelLuz = COALESCE(?, nivelLuz),
-                frecuenciaRiego = COALESCE(?, frecuenciaRiego),
-                temperaturaMinC = COALESCE(?, temperaturaMinC),
-                temperaturaMaxC = COALESCE(?, temperaturaMaxC),
-                humedadRequerida = COALESCE(?, humedadRequerida),
-                beneficios = COALESCE(?, beneficios),
-                toxicidad = COALESCE(?, toxicidad),
-                nivelDificultad = COALESCE(?, nivelDificultad),
-                stock = COALESCE(?, stock)
+                nombre = ?,
+                nombre_cientifico = ?,
+                descripcion = ?,
+                precio = ?,
+                nivel_dificultad = ?,
+                stock = ?
             WHERE id = ?`,
-            [
-                nombre, nombreCientifico, descripcion, precio, imagen,
-                tipoPlanta, alturaCm, anchoCm, tipoHoja, colorHojas, colorFlores, epocaFloracion,
-                tipoSuelo, nivelLuz, frecuenciaRiego, temperaturaMinC, temperaturaMaxC, humedadRequerida,
-                beneficiosStr, toxicidad, nivelDificultad, stock, id
-            ]
+            [nombre, nombre_cientifico, descripcion, precio, nivel_dificultad, stock, id]
         );
+        
+        // Actualizar categorías (eliminar todas y volver a insertar)
+        await db.query('DELETE FROM plantas_categorias WHERE planta_id = ?', [id]);
+        if (categorias.length > 0) {
+            const categoriasValues = categorias.map(catId => [id, catId]);
+            await db.query(
+                'INSERT INTO plantas_categorias (planta_id, id_categoria) VALUES ?',
+                [categoriasValues]
+            );
+        }
+        
+        // Actualizar toxicidades
+        await db.query('DELETE FROM planta_toxicidad WHERE planta_id = ?', [id]);
+        if (toxicidades.length > 0) {
+            const toxicidadesValues = toxicidades.map(t => [id, t.id, t.detalles]);
+            await db.query(
+                'INSERT INTO planta_toxicidad (planta_id, toxicidad_id, detalles) VALUES ?',
+                [toxicidadesValues]
+            );
+        }
+        
+        // Actualizar imágenes (opcional, dependiendo de tu lógica)
+        // Podrías decidir no permitir actualización de imágenes o manejarlo aparte
         
         res.json({
             id,
-            mensaje: 'Planta actualizada exitosamente'
+            message: 'Planta actualizada exitosamente'
         });
     } catch (error) {
         next(error);
     }
 };
 
-// Eliminar una planta
+// Eliminar una planta (borrado lógico)
 const deletePlanta = async (req, res, next) => {
     try {
         const { id } = req.params;
@@ -187,11 +227,11 @@ const deletePlanta = async (req, res, next) => {
             return res.status(404).json({ error: 'Planta no encontrada' });
         }
         
-        // Eliminar la planta
-        await db.query('DELETE FROM plantas WHERE id = ?', [id]);
+        // Borrado lógico en lugar de físico
+        await db.query('UPDATE plantas SET activo = 0 WHERE id = ?', [id]);
         
         res.json({
-            mensaje: 'Planta eliminada exitosamente'
+            message: 'Planta desactivada exitosamente'
         });
     } catch (error) {
         next(error);
@@ -210,22 +250,13 @@ const searchPlantas = async (req, res, next) => {
         const searchTerm = `%${q}%`;
         
         const [plantas] = await db.query(
-            `SELECT * FROM plantas 
-            WHERE nombre LIKE ? 
-            OR nombreCientifico LIKE ? 
-            OR descripcion LIKE ?
-            OR tipoPlanta LIKE ?`,
-            [searchTerm, searchTerm, searchTerm, searchTerm]
+            `SELECT p.*, 
+                    (SELECT url FROM imagenes_plantas WHERE planta_id = p.id AND es_principal = 1 LIMIT 1) AS imagen_principal
+             FROM plantas p
+             WHERE p.activo = 1
+             AND (p.nombre LIKE ? OR p.nombre_cientifico LIKE ? OR p.descripcion LIKE ?)`,
+            [searchTerm, searchTerm, searchTerm]
         );
-        
-        // Convertir el campo beneficios de texto a array si existe
-        plantas.forEach(planta => {
-            if (planta.beneficios) {
-                planta.beneficios = planta.beneficios.split(',').map(b => b.trim());
-            } else {
-                planta.beneficios = [];
-            }
-        });
         
         res.json(plantas);
     } catch (error) {
@@ -233,44 +264,46 @@ const searchPlantas = async (req, res, next) => {
     }
 };
 
-// Filtrar plantas por criterios
+// Filtrar plantas por categoría
 const filterPlantas = async (req, res, next) => {
     try {
-        const { tipoPlanta, nivelLuz, nivelDificultad, frecuenciaRiego } = req.query;
+        const { categoria, dificultad, precio_min, precio_max } = req.query;
         
-        let query = 'SELECT * FROM plantas WHERE 1=1';
+        let query = `
+            SELECT DISTINCT p.*, 
+                   (SELECT url FROM imagenes_plantas WHERE planta_id = p.id AND es_principal = 1 LIMIT 1) AS imagen_principal,
+                   GROUP_CONCAT(DISTINCT c.nombre) AS nombres_categorias
+            FROM plantas p
+            LEFT JOIN plantas_categorias pc ON p.id = pc.planta_id
+            LEFT JOIN categorias c ON pc.id_categoria = c.id
+            WHERE p.activo = 1
+        `;
+        
         const params = [];
         
-        if (tipoPlanta) {
-            query += ' AND tipoPlanta = ?';
-            params.push(tipoPlanta);
+        if (categoria) {
+            query += ' AND pc.id_categoria = ?';
+            params.push(categoria);
         }
         
-        if (nivelLuz) {
-            query += ' AND nivelLuz = ?';
-            params.push(nivelLuz);
+        if (dificultad) {
+            query += ' AND p.nivel_dificultad = ?';
+            params.push(dificultad);
         }
-        
-        if (nivelDificultad) {
-            query += ' AND nivelDificultad = ?';
-            params.push(nivelDificultad);
+
+        if (precio_min) {
+            query += ' AND p.precio >= ?';
+            params.push(precio_min);
         }
-        
-        if (frecuenciaRiego) {
-            query += ' AND frecuenciaRiego = ?';
-            params.push(frecuenciaRiego);
+
+        if (precio_max) {
+            query += ' AND p.precio <= ?';
+            params.push(precio_max);
         }
+
+        query += ' GROUP BY p.id ORDER BY p.nombre ASC';
         
         const [plantas] = await db.query(query, params);
-        
-        // Convertir el campo beneficios de texto a array si existe
-        plantas.forEach(planta => {
-            if (planta.beneficios) {
-                planta.beneficios = planta.beneficios.split(',').map(b => b.trim());
-            } else {
-                planta.beneficios = [];
-            }
-        });
         
         res.json(plantas);
     } catch (error) {
@@ -286,4 +319,4 @@ module.exports = {
     deletePlanta,
     searchPlantas,
     filterPlantas
-}; 
+};

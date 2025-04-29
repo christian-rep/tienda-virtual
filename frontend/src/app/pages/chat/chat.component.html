@@ -9,22 +9,23 @@
       <!-- Recomendaciones de plantas -->
       <div *ngIf="message.recommendations && message.recommendations.length > 0" class="recommendations">
         <div *ngFor="let planta of message.recommendations" class="plant-card" (click)="verDetallePlanta(planta)">
-          <div class="plant-image" *ngIf="planta.imagen">
-            <img [src]="planta.imagen" [alt]="planta.nombre">
+          <div class="plant-image" *ngIf="planta.imagen_principal">
+            <img [src]="planta.imagen_principal" [alt]="planta.nombre">
           </div>
-          <div class="plant-image no-image" *ngIf="!planta.imagen">
+          <div class="plant-image no-image" *ngIf="!planta.imagen_principal">
             <i class="fas fa-seedling"></i>
           </div>
           <div class="plant-info">
             <h3>{{ planta.nombre }}</h3>
-            <p *ngIf="planta.nombreCientifico" class="scientific-name"><em>{{ planta.nombreCientifico }}</em></p>
+            <p *ngIf="planta.nombre_cientifico" class="scientific-name"><em>{{ planta.nombre_cientifico }}</em></p>
             <div class="plant-badges">
-              <span class="badge" [ngClass]="'badge-' + planta.tipoPlanta">{{ planta.tipoPlanta }}</span>
-              <span class="badge badge-light">{{ planta.nivelDificultad }}</span>
+              <span class="badge badge-light">{{ planta.nivel_dificultad }}</span>
+              <span *ngIf="planta.toxicidades && planta.toxicidades.length > 0" class="badge badge-warning">
+                {{ planta.toxicidades[0].nivel }}
+              </span>
             </div>
             <div class="plant-care-icons">
-              <span title="Nivel de luz"><i class="fas fa-sun"></i> {{ planta.nivelLuz }}</span>
-              <span title="Frecuencia de riego"><i class="fas fa-tint"></i> {{ planta.frecuenciaRiego }}</span>
+              <span title="Stock disponible"><i class="fas fa-box-open"></i> {{ planta.stock }} unidades</span>
             </div>
           </div>
         </div>
