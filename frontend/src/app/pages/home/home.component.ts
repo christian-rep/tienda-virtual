@@ -57,7 +57,7 @@ export class HomeComponent implements OnInit {
       description: 'El arte milenario de miniaturizar árboles.',
       image: 'assets/images/optimized-categories/categories/bonsai.jpg'
     }
-  ];
+  ]; 
 
   imagePath = {
     interior: 'assets/images/optimized-categories/categories/interior.jpg',

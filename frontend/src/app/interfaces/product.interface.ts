@@ -1,33 +1,21 @@
 export interface Product {
     id: string;
     nombre: string;
-    nombreCientifico?: string;
+    nombre_cientifico?: string;
     descripcion: string;
     precio: number;
-    imagen?: string;
-    
-    // Características de la planta
-    tipoPlanta: string; // interior, exterior, suculenta, etc.
-    alturaCm?: number;
-    anchoCm?: number;
-    tipoHoja?: string; // perenne, caduca
-    colorHojas?: string;
-    colorFlores?: string;
-    epocaFloracion?: string;
-    
-    // Requerimientos
-    tipoSuelo?: string;
-    nivelLuz: string; // sombra, parcial, pleno sol
-    frecuenciaRiego: string; // bajo, medio, alto
-    temperaturaMinC?: number;
-    temperaturaMaxC?: number;
-    humedadRequerida?: string; // baja, media, alta
-    
-    // Información adicional
-    beneficios?: string[]; // purificación de aire, repelente insectos, etc.
-    toxicidad?: string; // no tóxico, tóxico para mascotas, etc.
-    nivelDificultad: string; // principiante, intermedio, experto
+    nivel_dificultad: 'facil' | 'medio' | 'dificil';
     stock: number;
+    imagen_principal?: string;
+    imagenes_secundarias?: string[];
+    categorias?: number[];
+    created_at?: string;
+    activo?: boolean;
+    toxicidades?: Array<{
+      nivel: string;
+      descripcion: string;
+      detalles?: string;
+    }>;
 }
 
 export interface CartItem {
