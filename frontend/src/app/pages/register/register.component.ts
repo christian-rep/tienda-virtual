@@ -14,7 +14,7 @@ import { RegisterData } from '../../interfaces/user.interface';
 })
 export class RegisterComponent implements OnInit {
   registerForm: FormGroup;
-  error: string = '';
+  error: string | null = null;
   loading: boolean = false;
 
   constructor(
@@ -45,23 +45,30 @@ export class RegisterComponent implements OnInit {
     }
 
     this.loading = true;
-    this.error = '';
+    this.error = null;
 
-    const registerData: RegisterData = {
+    const userData: RegisterData = {
       nombre: this.registerForm.get('nombre')?.value,
       apellido: this.registerForm.get('apellido')?.value,
       email: this.registerForm.get('email')?.value,
       password: this.registerForm.get('password')?.value
     };
 
-    this.authService.register(registerData).subscribe({
-      next: () => {
-        this.router.navigate(['/login']);
+    this.authService.register(userData).subscribe({
+      next: (response) => {
+        this.loading = false;
+        if (response.message) {
+          localStorage.removeItem('authToken'); // Elimina solo el token temporal
+          this.router.navigate(['/login'], {
+            queryParams: { 
+              message: 'Registro exitoso. Por favor, verifica tu email para activar tu cuenta.'
+            }
+          });
+        }
       },
       error: (error) => {
-        console.error('Error de registro:', error);
-        this.error = 'Error al registrar usuario. Por favor, intente nuevamente.';
         this.loading = false;
+        this.error = error.error?.message || 'Error al registrar usuario';
       }
     });
   }

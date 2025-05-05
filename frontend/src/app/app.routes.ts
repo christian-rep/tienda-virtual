@@ -22,5 +22,9 @@ export const routes: Routes = [
     component: ChatComponent,
     canActivate: [AuthGuard]
   },
+  {
+    path: 'verify-email',
+    loadComponent: () => import('./pages/verify-email/verify-email.component').then(m => m.VerifyEmailComponent)
+  },
   { path: '**', redirectTo: '' }
 ];

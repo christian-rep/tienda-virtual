@@ -13,46 +13,47 @@ export class AuthService {
   private isAuthenticatedSubject = new BehaviorSubject<boolean>(this.hasToken());
   isAuthenticated$ = this.isAuthenticatedSubject.asObservable();
   
-  // Agregar el subject para el usuario actual
-  private currentUserSubject = new BehaviorSubject<User | null>(null);
+  private currentUserSubject = new BehaviorSubject<User | null>(this.getStoredUser());
   currentUser$ = this.currentUserSubject.asObservable();
 
   constructor(
     private http: HttpClient,
     private router: Router
   ) {
-    // Intentar recuperar el usuario del localStorage
-    const token = localStorage.getItem('token');
-    if (token) {
-      this.loadUserFromToken(token);
-    }
-    
-    // Cargar el usuario desde localStorage
+    // Verificar el token al iniciar
+    this.checkToken();
+  }
+
+  private getStoredUser(): User | null {
     const userStr = localStorage.getItem('user');
     if (userStr) {
       try {
-        const user = JSON.parse(userStr) as User;
-        this.currentUserSubject.next(user);
+        return JSON.parse(userStr) as User;
       } catch (error) {
-        console.error('Error al cargar el usuario desde localStorage:', error);
+        console.error('Error al parsear usuario almacenado:', error);
+        return null;
       }
     }
+    return null;
   }
 
-  private loadUserFromToken(token: string): void {
-    // Decodificar el token JWT para obtener la información del usuario
-    try {
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      localStorage.setItem('user', JSON.stringify(payload.user));
-      this.isAuthenticatedSubject.next(true);
-      
-      // Actualizar el subject del usuario
-      if (payload.user) {
-        this.currentUserSubject.next(payload.user);
+  private checkToken(): void {
+    const token = localStorage.getItem('token');
+    if (token) {
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        if (payload.exp * 1000 > Date.now()) {
+          this.isAuthenticatedSubject.next(true);
+          if (payload.user) {
+            this.currentUserSubject.next(payload.user);
+          }
+        } else {
+          this.logout();
+        }
+      } catch (error) {
+        console.error('Error al verificar token:', error);
+        this.logout();
       }
-    } catch (error) {
-      console.error('Error al decodificar el token:', error);
-      this.logout();
     }
   }
 
@@ -60,20 +61,31 @@ export class AuthService {
     return !!localStorage.getItem('token');
   }
 
-  login(credentials: LoginCredentials): Observable<{ token: string, user: User }> {
-    return this.http.post<{ token: string, user: User }>(`${this.apiUrl}/login`, credentials)
+  login(credentials: LoginCredentials): Observable<AuthResponse> {
+    return this.http.post<AuthResponse>(`${this.apiUrl}/login`, credentials)
       .pipe(
         tap(response => {
-          localStorage.setItem('token', response.token);
-          localStorage.setItem('user', JSON.stringify(response.user));
-          this.isAuthenticatedSubject.next(true);
-          this.currentUserSubject.next(response.user);
+          this.handleAuthResponse(response);
         })
       );
   }
 
-  register(userData: RegisterData): Observable<{ message: string }> {
-    return this.http.post<{ message: string }>(`${this.apiUrl}/register`, userData);
+  register(userData: RegisterData): Observable<AuthResponse> {
+    return this.http.post<AuthResponse>(`${this.apiUrl}/register`, userData)
+      .pipe(
+        tap(response => {
+          this.handleAuthResponse(response);
+        })
+      );
+  }
+
+  private handleAuthResponse(response: AuthResponse): void {
+    if (response.token && response.user) {
+      localStorage.setItem('token', response.token);
+      localStorage.setItem('user', JSON.stringify(response.user));
+      this.isAuthenticatedSubject.next(true);
+      this.currentUserSubject.next(response.user);
+    }
   }
 
   logout(): void {
@@ -89,12 +101,8 @@ export class AuthService {
   }
 
   isAdmin(): boolean {
-    const user = localStorage.getItem('user');
-    if (user) {
-      const userData = JSON.parse(user) as User;
-      return userData.rol === 'admin';
-    }
-    return false;
+    const user = this.currentUserSubject.value;
+    return user?.rol === 'admin';
   }
 
   getUserProfile(): Observable<User> {
@@ -107,5 +115,11 @@ export class AuthService {
 
   getToken(): string | null {
     return localStorage.getItem('token');
+  }
+
+  verifyEmail(token: string): Observable<{ success: boolean; message: string }> {
+    return this.http.get<{ success: boolean; message: string }>(
+      `${this.apiUrl}/verify-email?token=${token}`
+    );
   }
 }

@@ -287,8 +287,12 @@ const filterPlantas = async (req, res, next) => {
         }
         
         if (dificultad) {
-            query += ' AND p.nivel_dificultad = ?';
-            params.push(dificultad);
+            // Asegurarnos de que el valor de dificultad coincida con el ENUM
+            const dificultadValida = ['facil', 'medio', 'dificil'].includes(dificultad.toLowerCase());
+            if (dificultadValida) {
+                query += ' AND LOWER(p.nivel_dificultad) = LOWER(?)';
+                params.push(dificultad);
+            }
         }
 
         if (precio_min) {
@@ -303,11 +307,61 @@ const filterPlantas = async (req, res, next) => {
 
         query += ' GROUP BY p.id ORDER BY p.nombre ASC';
         
+        console.log('Query de filtrado:', query);
+        console.log('Parámetros:', params);
+        
         const [plantas] = await db.query(query, params);
         
         res.json(plantas);
     } catch (error) {
+        console.error('Error en filterPlantas:', error);
         next(error);
+    }
+};
+
+// Nuevo método para verificar el email
+const verifyEmail = async (req, res) => {
+    try {
+        const { token } = req.query;
+
+        if (!token) {
+            return res.status(400).json({
+                success: false,
+                message: 'Token de verificación no proporcionado'
+            });
+        }
+
+        // Buscar usuario con el token de verificación
+        const [users] = await db.query(
+            'SELECT * FROM usuarios WHERE token_verificacion = ? AND fecha_expiracion_token > NOW()',
+            [token]
+        );
+
+        if (users.length === 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'Token inválido o expirado'
+            });
+        }
+
+        const user = users[0];
+
+        // Actualizar el usuario como verificado y activo
+        await db.query(
+            'UPDATE usuarios SET email_verificado = 1, activo = 1, token_verificacion = NULL, fecha_expiracion_token = NULL WHERE id = ?',
+            [user.id]
+        );
+
+        res.status(200).json({
+            success: true,
+            message: 'Email verificado correctamente. Tu cuenta ha sido activada. Por favor, inicia sesión.'
+        });
+    } catch (error) {
+        console.error('Error en verificación de email:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error en el servidor'
+        });
     }
 };
 
@@ -318,5 +372,6 @@ module.exports = {
     updatePlanta,
     deletePlanta,
     searchPlantas,
-    filterPlantas
+    filterPlantas,
+    verifyEmail
 };
