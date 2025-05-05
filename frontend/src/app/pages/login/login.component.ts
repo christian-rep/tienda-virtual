@@ -14,17 +14,18 @@ import { LoginCredentials } from '../../interfaces/user.interface';
 })
 export class LoginComponent implements OnInit {
   loginForm: FormGroup;
-  error: string = '';
-  loading: boolean = false;
+  error: string | null = null;
+  success: string | null = null;
+  loading = false;
   returnUrl: string = '/';
 
   constructor(
-    private formBuilder: FormBuilder,
+    private fb: FormBuilder,
     private authService: AuthService,
     private router: Router,
     private route: ActivatedRoute
   ) {
-    this.loginForm = this.formBuilder.group({
+    this.loginForm = this.fb.group({
       email: ['', [Validators.required, Validators.email]],
       password: ['', [Validators.required, Validators.minLength(6)]]
     });
@@ -33,6 +34,13 @@ export class LoginComponent implements OnInit {
   ngOnInit(): void {
     // Obtener la URL de retorno de los parámetros de consulta
     this.returnUrl = this.route.snapshot.queryParams['returnUrl'] || '/';
+
+    // Verificar si hay un mensaje de éxito en los queryParams
+    this.route.queryParams.subscribe(params => {
+      if (params['message']) {
+        this.success = params['message'];
+      }
+    });
   }
 
   onSubmit(): void {
@@ -41,7 +49,8 @@ export class LoginComponent implements OnInit {
     }
 
     this.loading = true;
-    this.error = '';
+    this.error = null;
+    this.success = null;
 
     const credentials: LoginCredentials = {
       email: this.loginForm.get('email')?.value,
@@ -49,13 +58,13 @@ export class LoginComponent implements OnInit {
     };
 
     this.authService.login(credentials).subscribe({
-      next: () => {
+      next: (response) => {
+        this.loading = false;
         this.router.navigate([this.returnUrl]);
       },
       error: (error) => {
-        console.error('Error de login:', error);
-        this.error = 'Credenciales inválidas. Por favor, intente nuevamente.';
         this.loading = false;
+        this.error = error.error?.message || 'Error al iniciar sesión';
       }
     });
   }

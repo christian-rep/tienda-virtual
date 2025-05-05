@@ -8,6 +8,7 @@ import { RegisterComponent } from './pages/register/register.component';
 import { CartComponent } from './pages/cart/cart.component';
 import { ChatComponent } from './pages/chat/chat.component';
 import { PlantDetailsComponent } from './pages/plant-details/plant-details.component';
+import { VerifyEmailComponent } from './pages/verify-email/verify-email.component';
 
 // Lazy loading para Products
 const routes: Routes = [
@@ -21,6 +22,7 @@ const routes: Routes = [
     loadComponent: () => import('./pages/products/products.component').then(m => m.ProductsComponent)
   },
   { path: 'planta/:id', component: PlantDetailsComponent },
+  { path: 'verify-email', component: VerifyEmailComponent },
   { path: '**', redirectTo: '' }
 ];
 

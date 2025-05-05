@@ -48,7 +48,11 @@ mongoose
 // Middleware de manejo de errores
 app.use((err, req, res, next) => {
   console.error("🔥 ERROR:", err.stack);
-  res.status(500).json({ error: "Ocurrió un error en el servidor" });
+  res.status(500).json({
+    success: false,
+    message: 'Error en el servidor',
+    error: err.message
+  });
 });
 
 // Ruta de prueba
