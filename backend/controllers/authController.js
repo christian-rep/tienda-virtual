@@ -90,13 +90,14 @@ exports.login = async (req, res) => {
     // Eliminar la contraseña del objeto de usuario
     const { password: _, ...userWithoutPassword } = user;
 
+    
     // Enviar respuesta
     res.status(200).json({
       success: true,
       user: userWithoutPassword,
       token
     });
-  } catch (error) {
+    } catch (error) {
     console.error('Error en login:', error);
     res.status(500).json({ 
       success: false, 
@@ -143,7 +144,7 @@ exports.register = async (req, res) => {
     // Generar token de verificación
     const verificationToken = crypto.randomBytes(32).toString('hex');
     const verificationExpires = new Date();
-    verificationExpires.setHours(verificationExpires.getHours() + 24);
+    verificationExpires.setHours(verificationExpires.getHours() + 12);
 
     console.log('Intentando insertar usuario en la base de datos...');
 
@@ -170,7 +171,7 @@ exports.register = async (req, res) => {
           <h1>Bienvenido a nuestra tienda de plantas!</h1>
           <p>Por favor, verifica tu email haciendo clic en el siguiente enlace:</p>
           <a href="${verificationUrl}">${verificationUrl}</a>
-          <p>Este enlace expirará en 24 horas.</p>
+          <p>Este enlace expirará en 12 horas.</p>
         `
       };
 
@@ -206,7 +207,7 @@ exports.register = async (req, res) => {
     res.status(201).json({
       success: true,
       user: userWithoutPassword,
-      token,
+      //token,
       message: 'Por favor, verifica tu email para activar tu cuenta'
     });
   } catch (error) {
@@ -250,7 +251,7 @@ exports.getCurrentUser = async (req, res) => {
     });
   }
 };
-/*
+
 // Nuevo método para verificar el email
 exports.verifyEmail = async (req, res) => {
   try {
@@ -295,4 +296,4 @@ exports.verifyEmail = async (req, res) => {
       message: 'Error en el servidor'
     });
   }
-}; */
+}; 
