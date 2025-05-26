@@ -23,6 +23,12 @@ export const routes: Routes = [
     canActivate: [AuthGuard]
   },
   {
+    path: 'admin/plantas',
+    loadComponent: () => import('./pages/admin/plant-management/plant-management.component').then(m => m.PlantManagementComponent),
+    canActivate: [AuthGuard],
+    data: { requiresAdmin: true }
+  },
+  {
     path: 'verify-email',
     loadComponent: () => import('./pages/verify-email/verify-email.component').then(m => m.VerifyEmailComponent)
   },

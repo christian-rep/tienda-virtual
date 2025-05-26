@@ -14,6 +14,7 @@ const chatRoutes = require("./routes/chat");
 const authRoutes = require('./routes/authRoutes');
 const plantasRoutes = require('./routes/plantas');
 const categoriasRoutes = require('./routes/categorias');
+const toxicidadRoutes = require('./routes/toxicidad');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -30,6 +31,12 @@ app.use("/api/chat", chatRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/plantas', plantasRoutes);
 app.use('/api/categorias', categoriasRoutes);
+app.use('/api/toxicidad', toxicidadRoutes);
+
+// Ruta de prueba
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'OK', message: 'Servidor funcionando correctamente' });
+});
 
 // Conexión a MongoDB
 if (!process.env.MONGODB_URI) {

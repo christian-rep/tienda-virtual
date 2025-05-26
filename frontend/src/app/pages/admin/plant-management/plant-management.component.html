@@ -1,0 +1,150 @@
+<div class="plant-management-container">
+  <div class="header">
+    <h1>Gestión de Plantas</h1>
+    <button class="btn-primary" (click)="nuevaPlanta()">
+      <i class="fas fa-plus"></i> Nueva Planta
+    </button>
+  </div>
+
+  <div *ngIf="error" class="error-message">
+    {{ error }}
+  </div>
+
+  <div *ngIf="loading" class="loading">
+    <div class="spinner"></div>
+    <p>Cargando plantas...</p>
+  </div>
+
+  <!-- Formulario de edición/creación -->
+  <div *ngIf="plantaSeleccionada" class="edit-form">
+    <h2>{{ modoEdicion === 'crear' ? 'Nueva Planta' : 'Editar Planta' }}</h2>
+    <form (ngSubmit)="guardarPlanta()">
+      <div class="form-group">
+        <label for="nombre">Nombre:</label>
+        <input type="text" id="nombre" [(ngModel)]="plantaSeleccionada.nombre" name="nombre" required>
+      </div>
+
+      <div class="form-group">
+        <label for="nombre_cientifico">Nombre Científico:</label>
+        <input type="text" id="nombre_cientifico" [(ngModel)]="plantaSeleccionada.nombre_cientifico" name="nombre_cientifico">
+      </div>
+
+      <div class="form-group">
+        <label for="descripcion">Descripción:</label>
+        <textarea id="descripcion" [(ngModel)]="plantaSeleccionada.descripcion" name="descripcion" rows="4" required></textarea>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="precio">Precio:</label>
+          <input type="number" id="precio" [(ngModel)]="plantaSeleccionada.precio" name="precio" min="0" step="0.01" required>
+        </div>
+
+        <div class="form-group">
+          <label for="stock">Stock:</label>
+          <input type="number" id="stock" [(ngModel)]="plantaSeleccionada.stock" name="stock" min="0" required>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="nivel_dificultad">Nivel de Dificultad:</label>
+          <select id="nivel_dificultad" [(ngModel)]="plantaSeleccionada.nivel_dificultad" name="nivel_dificultad" required>
+            <option value="facil">Fácil</option>
+            <option value="medio">Medio</option>
+            <option value="dificil">Difícil</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="nivel_toxicidad">Nivel de Toxicidad:</label>
+          <select id="nivel_toxicidad" 
+                  [(ngModel)]="plantaSeleccionada.toxicidades![0].nivel" 
+                  name="nivel_toxicidad" 
+                  (ngModelChange)="actualizarToxicidad($event)"
+                  required>
+            <option *ngFor="let t of nivelesToxicidad" [value]="t.nivel">{{ t.nivel | titlecase }}</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="categorias">Categorías:</label>
+        <select id="categorias" [(ngModel)]="plantaSeleccionada.categorias" name="categorias" multiple>
+          <option *ngFor="let cat of categorias" [value]="cat.id">{{ cat.nombre }}</option>
+        </select>
+        <small class="form-text">Mantenga presionado Ctrl (Cmd en Mac) para seleccionar múltiples categorías</small>
+      </div>
+
+      <div class="form-group">
+        <label for="imagenes">Imágenes:</label>
+        <input type="file" id="imagenes" name="imagenes" multiple accept="image/*" (change)="onFileSelected($event)">
+        <small class="form-text">Puede seleccionar hasta 5 imágenes. La primera será la imagen principal.</small>
+        
+        <!-- Vista previa de imágenes -->
+        <div *ngIf="imagenesPrevia.length > 0" class="image-preview">
+          <div *ngFor="let imagen of imagenesPrevia" class="preview-item">
+            <img [src]="imagen.url" [alt]="'Vista previa'">
+            <button type="button" class="btn-remove" (click)="removeImage(imagen)">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" class="btn-primary">
+          <i class="fas fa-save"></i> Guardar
+        </button>
+        <button type="button" class="btn-secondary" (click)="cancelarEdicion()">
+          <i class="fas fa-times"></i> Cancelar
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Lista de plantas -->
+  <div *ngIf="!loading && !plantaSeleccionada" class="plants-list">
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Nombre</th>
+            <th>Nombre Científico</th>
+            <th>Precio</th>
+            <th>Stock</th>
+            <th>Categorías</th>
+            <th>Dificultad</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let planta of plantas">
+            <td>{{ planta.nombre }}</td>
+            <td><em>{{ planta.nombre_cientifico }}</em></td>
+            <td>{{ planta.precio | currency }}</td>
+            <td [ngClass]="{'low-stock': planta.stock < 5}">{{ planta.stock }}</td>
+            <td>
+              <span *ngFor="let catId of planta.categorias" class="badge">
+                {{ getCategoryName(catId) }}
+              </span>
+            </td>
+            <td>
+              <span class="badge" [ngClass]="'badge-' + planta.nivel_dificultad">
+                {{ planta.nivel_dificultad }}
+              </span>
+            </td>
+            <td class="actions">
+              <button class="btn-icon" (click)="editarPlanta(planta)" title="Editar">
+                <i class="fas fa-edit"></i>
+              </button>
+              <button class="btn-icon btn-danger" (click)="eliminarPlanta(planta.id)" title="Eliminar">
+                <i class="fas fa-trash"></i>
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div> 
