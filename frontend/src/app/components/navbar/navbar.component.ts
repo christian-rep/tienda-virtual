@@ -13,6 +13,7 @@ import { CartService } from '../../services/cart.service';
 })
 export class NavbarComponent implements OnInit {
   isAuthenticated = false;
+  isAdmin = false;
   userName: string = '';
   mobileMenuOpen: boolean = false;
   userMenuOpen: boolean = false;
@@ -28,6 +29,7 @@ export class NavbarComponent implements OnInit {
     // Suscribirse a los cambios en el estado de autenticación
     this.authService.currentUser$.subscribe(user => {
       this.isAuthenticated = !!user;
+      this.isAdmin = user?.rol === 'admin';
       if (user) {
         this.userName = `${user.nombre} ${user.apellido}`;
       } else {

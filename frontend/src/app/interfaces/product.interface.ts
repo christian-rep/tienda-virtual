@@ -6,16 +6,21 @@ export interface Product {
     precio: number;
     nivel_dificultad: 'facil' | 'medio' | 'dificil';
     stock: number;
-    imagen_principal?: string;
-    imagenes_secundarias?: string[];
-    categorias?: number[];
-    created_at?: string;
-    activo?: boolean;
-    toxicidades?: Array<{
+    categorias: number[];
+    activo: boolean;
+    toxicidades: {
+      id: number;
       nivel: string;
       descripcion: string;
-      detalles?: string;
-    }>;
+      detalles: string;
+    }[];
+    imagenes?: {
+      id: number;
+      url: string;
+      orden: number;
+      es_principal: boolean;
+    }[];
+    imagen_principal?: string;
 }
 
 export interface CartItem {

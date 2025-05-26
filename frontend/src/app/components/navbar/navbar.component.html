@@ -38,6 +38,13 @@
             <i class="fas fa-chevron-down"></i>
           </button>
           <div class="user-dropdown" [ngClass]="{'active': userMenuOpen}">
+            <!-- Opciones de administrador -->
+            <ng-container *ngIf="isAdmin">
+              <a routerLink="/admin/plantas" class="dropdown-item">
+                <i class="fas fa-leaf"></i> Gestión de Plantas
+              </a>
+              <div class="dropdown-divider"></div>
+            </ng-container>
             <a routerLink="/profile" class="dropdown-item">
               <i class="fas fa-user-cog"></i> Mi Perfil
             </a>
