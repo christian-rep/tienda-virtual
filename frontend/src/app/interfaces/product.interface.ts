@@ -1,26 +1,24 @@
+import { Categoria, Toxicidad } from './plant.interface';
+
 export interface Product {
-    id: string;
+    id: number | string;
     nombre: string;
     nombre_cientifico?: string;
     descripcion: string;
     precio: number;
-    nivel_dificultad: 'facil' | 'medio' | 'dificil';
+    nivel_dificultad: string;
     stock: number;
-    categorias: number[];
-    activo: boolean;
-    toxicidades: {
-      id: number;
-      nivel: string;
-      descripcion: string;
-      detalles: string;
-    }[];
-    imagenes?: {
+    activo?: boolean;
+    imagen_principal?: string;
+    imagenes?: Array<{
       id: number;
       url: string;
-      orden: number;
       es_principal: boolean;
-    }[];
-    imagen_principal?: string;
+      orden?: number;
+    }>;
+    categorias: Categoria[];
+    toxicidades: Toxicidad[];
+    nombres_categorias?: string;
 }
 
 export interface CartItem {

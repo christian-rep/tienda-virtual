@@ -5,6 +5,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
 import { Product } from '../../interfaces/product.interface';
+import { Categoria } from '../../interfaces/plant.interface';
 
 interface Filtros {
   categoria?: string;
@@ -32,8 +33,8 @@ export class ProductsComponent implements OnInit {
   productosFiltrados: Product[] = [];
   error: string = '';
   loading: boolean = true;
+  categorias: Categoria[] = [];
   
-  // Filtros actualizados
   filtros: Filtros = {
     categoria: '',
     dificultad: undefined,
@@ -41,8 +42,6 @@ export class ProductsComponent implements OnInit {
     precio_max: undefined
   };
 
-  // Opciones para los selectores de filtros
-  categorias: {id: number, nombre: string}[] = [];
   nivelesDificultad = [
     {value: 'facil', label: 'Fácil'},
     {value: 'medio', label: 'Medio'},
@@ -60,7 +59,7 @@ export class ProductsComponent implements OnInit {
     this.loadProducts();
     this.loadCategorias();
     
-    this.route.queryParams.subscribe((params: QueryParams) => {
+    this.route.queryParams.subscribe(params => {
       if (params['categoria']) {
         this.filtros.categoria = params['categoria'];
       }
@@ -112,7 +111,6 @@ export class ProductsComponent implements OnInit {
     this.productsService.getCategories().subscribe({
       next: (data) => {
         this.categorias = data;
-        console.log('Categorías cargadas:', this.categorias);
       },
       error: (error) => {
         console.error('Error al cargar categorías:', error);
@@ -138,25 +136,40 @@ export class ProductsComponent implements OnInit {
   }
 
   aplicarFiltros(): void {
-    const hayFiltros = Object.values(this.filtros).some(value => value !== undefined && value !== '');
+    // Limpiar valores undefined y vacíos
+    const filtrosLimpios: any = {};
+    
+    if (this.filtros.categoria && this.filtros.categoria !== '') {
+      filtrosLimpios.categoria = this.filtros.categoria;
+    }
+    if (this.filtros.dificultad && this.filtros.dificultad !== undefined) {
+      filtrosLimpios.dificultad = this.filtros.dificultad;
+    }
+    if (this.filtros.precio_min !== undefined && this.filtros.precio_min !== null) {
+      filtrosLimpios.precio_min = this.filtros.precio_min;
+    }
+    if (this.filtros.precio_max !== undefined && this.filtros.precio_max !== null) {
+      filtrosLimpios.precio_max = this.filtros.precio_max;
+    }
+    
+    const hayFiltros = Object.keys(filtrosLimpios).length > 0;
     
     if (hayFiltros) {
       this.loading = true;
-      this.productsService.filterProducts(this.filtros).subscribe({
+      this.error = '';
+      
+      console.log('Aplicando filtros:', filtrosLimpios);
+      
+      this.productsService.filterProducts(filtrosLimpios).subscribe({
         next: (data) => {
-          this.productosFiltrados = data;
+          console.log('Resultados del filtrado:', data);
+          this.productosFiltrados = data || [];
           this.loading = false;
           
-          // Actualizar URL con los filtros actuales
-          const queryParams: QueryParams = {};
-          if (this.filtros.categoria) queryParams['categoria'] = this.filtros.categoria;
-          if (this.filtros.dificultad) queryParams['dificultad'] = this.filtros.dificultad;
-          if (this.filtros.precio_min !== undefined) queryParams['precio_min'] = this.filtros.precio_min.toString();
-          if (this.filtros.precio_max !== undefined) queryParams['precio_max'] = this.filtros.precio_max.toString();
-
+          // Actualizar URL con los filtros aplicados
           this.router.navigate([], {
             relativeTo: this.route,
-            queryParams: queryParams,
+            queryParams: filtrosLimpios,
             queryParamsHandling: 'merge'
           });
         },
@@ -168,6 +181,7 @@ export class ProductsComponent implements OnInit {
         }
       });
     } else {
+      // Si no hay filtros, mostrar todos los productos
       this.productosFiltrados = [...this.productos];
       this.router.navigate([], {
         relativeTo: this.route,
@@ -197,8 +211,9 @@ export class ProductsComponent implements OnInit {
     }
   }
 
-  verDetalles(product: Product): void {
-    this.router.navigate(['/planta', product.id]);
+  verDetalles(producto: Product): void {
+    console.log('Navegando a detalles del producto:', producto.id);
+    this.router.navigate(['/products', producto.id]);
   }
 
   formatPrice(price: number): string {
@@ -208,15 +223,31 @@ export class ProductsComponent implements OnInit {
     }).format(price);
   }
 
-  // Función para obtener la imagen principal o una por defecto
-  getProductImage(product: Product): string {
-    return product.imagen_principal || 'assets/images/planta-default.jpg';
+  getCategoryName(category: Categoria | number | any): string {
+    if (typeof category === 'number') {
+      const foundCategory = this.categorias.find(cat => cat.id === category);
+      return foundCategory ? foundCategory.nombre : '';
+    }
+    if (typeof category === 'object' && category.nombre) {
+      return category.nombre;
+    }
+    if (typeof category === 'string') {
+      // Si es un string, intentar convertirlo a número
+      const categoryId = parseInt(category, 10);
+      if (!isNaN(categoryId)) {
+        const foundCategory = this.categorias.find(cat => cat.id === categoryId);
+        return foundCategory ? foundCategory.nombre : category;
+      }
+      return category;
+    }
+    return '';
   }
 
-  // Función para obtener el nombre de la categoría
-  getCategoryName(categoryId: number): string {
-    const categoria = this.categorias.find(cat => cat.id === categoryId);
-    return categoria ? categoria.nombre : 'Sin categoría';
+  getProductImage(product: Product): string {
+    if (product.imagen_principal) {
+      return product.imagen_principal;
+    }
+    return `assets/images/plantas/${product.id}/principal.jpg`;
   }
 
   getToxicidadNivel(toxicidades: { nivel: string; descripcion: string; detalles?: string }[] | undefined): string {

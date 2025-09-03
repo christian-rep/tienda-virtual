@@ -9,8 +9,29 @@
             {{ success }}
           </div>
           
-          <div *ngIf="error" class="alert alert-danger">
-            {{ error }}
+          <div *ngIf="error" class="alert" [ngClass]="{
+            'alert-danger': !bloqueado,
+            'alert-warning': bloqueado
+          }">
+            <div class="d-flex align-items-center">
+              <i *ngIf="bloqueado" class="fas fa-clock me-2"></i>
+              <i *ngIf="!bloqueado" class="fas fa-exclamation-triangle me-2"></i>
+              <div>
+                {{ error }}
+                <div *ngIf="intentosRestantes !== null && intentosRestantes > 0" class="mt-1">
+                  <small class="text-muted">
+                    <i class="fas fa-info-circle me-1"></i>
+                    Intentos restantes: {{ intentosRestantes }}
+                  </small>
+                </div>
+                <div *ngIf="bloqueado && minutosRestantes !== null" class="mt-1">
+                  <small class="text-muted">
+                    <i class="fas fa-hourglass-half me-1"></i>
+                    Tiempo restante: {{ minutosRestantes }} minutos
+                  </small>
+                </div>
+              </div>
+            </div>
           </div>
           
           <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
@@ -22,6 +43,8 @@
                 id="email" 
                 formControlName="email"
                 [ngClass]="{'is-invalid': loginForm.get('email')?.invalid && loginForm.get('email')?.touched}"
+                placeholder="Ingrese su email"
+                [disabled]="bloqueado"
               >
               <div *ngIf="loginForm.get('email')?.invalid && loginForm.get('email')?.touched" class="invalid-feedback">
                 <div *ngIf="loginForm.get('email')?.errors?.['required']">El email es requerido</div>
@@ -37,6 +60,8 @@
                 id="password" 
                 formControlName="password"
                 [ngClass]="{'is-invalid': loginForm.get('password')?.invalid && loginForm.get('password')?.touched}"
+                placeholder="Ingrese su contraseña"
+                [disabled]="bloqueado"
               >
               <div *ngIf="loginForm.get('password')?.invalid && loginForm.get('password')?.touched" class="invalid-feedback">
                 <div *ngIf="loginForm.get('password')?.errors?.['required']">La contraseña es requerida</div>
@@ -44,13 +69,30 @@
               </div>
             </div>
             
+            <div class="mb-3">
+              <div class="d-flex justify-content-between align-items-center">
+                <div class="form-check">
+                  <input type="checkbox" class="form-check-input" id="rememberMe" formControlName="rememberMe" [disabled]="bloqueado">
+                  <label class="form-check-label" for="rememberMe">Recordarme</label>
+                </div>
+                <button type="button" class="btn btn-link p-0" (click)="irARecuperarPassword()" [disabled]="bloqueado">¿Olvidaste tu contraseña?</button>
+              </div>
+            </div>
+            
             <button 
               type="submit" 
               class="btn btn-primary w-100" 
-              [disabled]="loginForm.invalid || loading"
+              [disabled]="loginForm.invalid || loading || bloqueado"
             >
-              <span *ngIf="loading" class="spinner-border spinner-border-sm me-1"></span>
-              {{ loading ? 'Iniciando sesión...' : 'Iniciar Sesión' }}
+              <span *ngIf="loading" class="spinner-border spinner-border-sm me-2"></span>
+              <span *ngIf="bloqueado" class="me-2">
+                <i class="fas fa-lock"></i>
+              </span>
+              {{ 
+                loading ? 'Iniciando sesión...' : 
+                bloqueado ? 'Cuenta bloqueada' : 
+                'Iniciar Sesión' 
+              }}
             </button>
           </form>
           

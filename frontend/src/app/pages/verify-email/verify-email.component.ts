@@ -2,17 +2,16 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
-import { FormsModule } from '@angular/forms';
 
 @Component({
   selector: 'app-verify-email',
   templateUrl: './verify-email.component.html',
   styleUrls: ['./verify-email.component.scss'],
   standalone: true,
-  imports: [CommonModule, FormsModule]
+  imports: [CommonModule]
 })
 export class VerifyEmailComponent implements OnInit {
-  message: string = 'Verificando email...';
+  message: string = '';
   error: string | null = null;
   loading = true;
 
@@ -23,8 +22,7 @@ export class VerifyEmailComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    const token = this.route.snapshot.queryParamMap.get('token');
-    
+    const token = this.route.snapshot.queryParams['token'];
     if (!token) {
       this.error = 'Token de verificación no proporcionado';
       this.loading = false;
@@ -34,23 +32,16 @@ export class VerifyEmailComponent implements OnInit {
     this.authService.verifyEmail(token).subscribe({
       next: (response) => {
         this.loading = false;
-        this.message = response.message;
-        
-        // Limpieza mínima de sesión local (sin llamar a logout en backend)
-        localStorage.removeItem('authToken');
-        localStorage.removeItem('userData');
-        
-        
-        // Redirigir al login después de 3 segundos
+        this.message = response.mensaje;
         setTimeout(() => {
           this.router.navigate(['/login'], {
-            queryParams: { message: 'Email verificado correctamente. Por favor inicia sesión.' }
+            queryParams: { message: 'Email verificado exitosamente. Por favor, inicia sesión.' }
           });
         }, 3000);
       },
       error: (error) => {
         this.loading = false;
-        this.error = error.error?.message || 'Error al verificar el email';
+        this.error = error.error?.mensaje || 'Error al verificar el email';
       }
     });
   }

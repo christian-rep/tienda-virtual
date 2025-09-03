@@ -1,0 +1,110 @@
+<div class="user-management-container">
+  <div class="header">
+    <h1>Gestión de Usuarios</h1>
+    <button class="btn-primary" (click)="nuevoUsuario()">
+      <i class="fas fa-plus"></i> Nuevo Usuario
+    </button>
+  </div>
+
+  <div *ngIf="error" class="error-message">
+    {{ error }}
+  </div>
+
+  <div *ngIf="loading" class="loading">
+    <div class="spinner"></div>
+    <p>Cargando usuarios...</p>
+  </div>
+
+  <!-- Formulario de edición/creación -->
+  <div *ngIf="usuarioSeleccionado || modoEdicion === 'crear'" class="edit-form">
+    <h2>{{ modoEdicion === 'crear' ? 'Nuevo Usuario' : 'Editar Usuario' }}</h2>
+    <form [formGroup]="usuarioForm" (ngSubmit)="guardarUsuario()">
+      <div class="form-group">
+        <label for="nombre">Nombre:</label>
+        <input type="text" id="nombre" formControlName="nombre" required>
+        <div *ngIf="usuarioForm.get('nombre')?.invalid && usuarioForm.get('nombre')?.touched" class="error-text">
+          El nombre es requerido
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="apellido">Apellido:</label>
+        <input type="text" id="apellido" formControlName="apellido" required>
+        <div *ngIf="usuarioForm.get('apellido')?.invalid && usuarioForm.get('apellido')?.touched" class="error-text">
+          El apellido es requerido
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="email">Email:</label>
+        <input type="email" id="email" formControlName="email" required>
+        <div *ngIf="usuarioForm.get('email')?.invalid && usuarioForm.get('email')?.touched" class="error-text">
+          Ingrese un email válido
+        </div>
+      </div>
+
+      <div class="mb-3">
+        <label for="rol" class="form-label">Rol</label>
+        <select class="form-select" id="rol" formControlName="rol">
+          <option value="cliente">Cliente</option>
+          <option value="admin">Administrador</option>
+        </select>
+      </div>
+
+      <div class="mb-3 form-check">
+        <input type="checkbox" class="form-check-input" id="activo" formControlName="activo">
+        <label class="form-check-label" for="activo">Activo</label>
+      </div>
+
+      <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-primary" [disabled]="usuarioForm.invalid">
+          {{ modoEdicion === 'editar' ? 'Actualizar' : 'Crear' }} Usuario
+        </button>
+        <button type="button" class="btn btn-secondary" (click)="cancelarEdicion()">
+          Cancelar
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Lista de usuarios -->
+  <div *ngIf="!loading && !usuarioSeleccionado" class="users-list">
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Nombre</th>
+            <th>Email</th>
+            <th>Rol</th>
+            <th>Estado</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let usuario of usuarios">
+            <td>{{ usuario.nombre }} {{ usuario.apellido }}</td>
+            <td>{{ usuario.email }}</td>
+            <td>
+              <span class="badge" [ngClass]="usuario.rol === 'admin' ? 'bg-danger' : 'bg-primary'">
+                {{ usuario.rol === 'admin' ? 'Administrador' : 'Cliente' }}
+              </span>
+            </td>
+            <td>
+              <span class="badge" [ngClass]="usuario.activo ? 'bg-success' : 'bg-danger'">
+                {{ usuario.activo ? 'Activo' : 'Inactivo' }}
+              </span>
+            </td>
+            <td class="actions">
+              <button class="btn-icon" (click)="editarUsuario(usuario)" title="Editar">
+                <i class="fas fa-edit"></i>
+              </button>
+              <button class="btn-icon btn-danger" (click)="eliminarUsuario(usuario.id)" title="Eliminar">
+                <i class="fas fa-trash"></i>
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div> 

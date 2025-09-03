@@ -14,8 +14,18 @@ const storage = multer.diskStorage({
             fs.mkdirSync(baseDir, { recursive: true });
         }
         
-        // Para nuevas plantas, usamos un directorio temporal
-        const plantaId = req.params.id || 'temp';
+        // Crear el directorio default si no existe
+        const defaultDir = path.join(baseDir, 'default');
+        if (!fs.existsSync(defaultDir)) {
+            fs.mkdirSync(defaultDir, { recursive: true });
+        }
+        
+        // Obtener el ID de la planta
+        const plantaId = req.params.id;
+        if (!plantaId) {
+            return cb(new Error('ID de planta no proporcionado'));
+        }
+        
         const uploadPath = path.join(baseDir, plantaId);
         
         // Crear el directorio específico si no existe
@@ -23,12 +33,12 @@ const storage = multer.diskStorage({
             fs.mkdirSync(uploadPath, { recursive: true });
         }
         
+        console.log('Directorio de destino:', uploadPath);
         cb(null, uploadPath);
     },
     filename: function (req, file, cb) {
-        // Generar un nombre único para el archivo
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        cb(null, uniqueSuffix + path.extname(file.originalname));
+        // Siempre usar principal.jpg como nombre
+        cb(null, 'principal.jpg');
     }
 });
 
@@ -45,7 +55,7 @@ const upload = multer({
     limits: {
         fileSize: 5 * 1024 * 1024 // límite de 5MB
     }
-}).array('imagenes', 5); // Permitir hasta 5 imágenes
+}).single('imagenes');
 
 // Función para manejar la subida de imágenes
 const handleImageUpload = (req, res, next) => {
@@ -92,25 +102,40 @@ const verifyToken = (req, res, next) => {
 };
 
 // Obtener todas las plantas con sus relaciones
-const getPlantas = async (req, res, next) => {
+const getPlantas = async (req, res) => {
     try {
-        console.log('Iniciando consulta de plantas...');
-        
-        // Consulta principal para obtener plantas
         const [plantas] = await db.query(`
-            SELECT p.*
+            SELECT DISTINCT p.*, 
+                   GROUP_CONCAT(DISTINCT c.nombre) AS nombres_categorias,
+                   GROUP_CONCAT(DISTINCT t.nivel) AS niveles_toxicidad
             FROM plantas p
+            LEFT JOIN plantas_categorias pc ON p.id = pc.planta_id
+            LEFT JOIN categorias c ON pc.id_categoria = c.id
+            LEFT JOIN planta_toxicidad pt ON p.id = pt.planta_id
+            LEFT JOIN toxicidad t ON pt.toxicidad_id = t.id
+            WHERE p.activo = 1
+            GROUP BY p.id
+            ORDER BY p.nombre ASC
         `);
-        
-        console.log(`Se encontraron ${plantas.length} plantas`);
+
+        // Obtener las imágenes para cada planta
+        for (let planta of plantas) {
+            const [imagenes] = await db.query(
+                'SELECT * FROM imagenes_plantas WHERE planta_id = ?',
+                [planta.id]
+            );
+            planta.imagenes = imagenes;
+            
+            // Establecer la imagen principal
+            const imagenPrincipal = imagenes.find(img => img.es_principal);
+            planta.imagen_principal = imagenPrincipal ? imagenPrincipal.url : null;
+        }
+
+        console.log('Plantas encontradas:', plantas.length);
         res.json(plantas);
     } catch (error) {
-        console.error('Error detallado en getPlantas:', error);
-        res.status(500).json({ 
-            error: 'Error al obtener las plantas',
-            message: error.message,
-            stack: error.stack
-        });
+        console.error('Error al obtener plantas:', error);
+        res.status(500).json({ error: 'Error al obtener las plantas' });
     }
 };
 
@@ -173,6 +198,8 @@ const getPlantaById = async (req, res, next) => {
 // Crear una nueva planta con sus relaciones
 const createPlanta = async (req, res, next) => {
     try {
+        console.log('Body recibido:', req.body);
+        
         const {
             nombre, 
             nombre_cientifico, 
@@ -180,8 +207,8 @@ const createPlanta = async (req, res, next) => {
             precio, 
             nivel_dificultad, 
             stock,
-            categorias = [],
-            toxicidades = []
+            categorias: categoriasRaw = '[]',
+            toxicidades: toxicidadesRaw = '[]'
         } = req.body;
         
         // Validaciones básicas
@@ -189,31 +216,92 @@ const createPlanta = async (req, res, next) => {
             return res.status(400).json({ error: 'Faltan campos obligatorios' });
         }
         
+        // Procesar categorías
+        let categorias = [];
+        try {
+            console.log('Categorías raw:', categoriasRaw);
+            if (typeof categoriasRaw === 'string') {
+                categorias = JSON.parse(categoriasRaw);
+            } else if (Array.isArray(categoriasRaw)) {
+                categorias = categoriasRaw;
+            }
+            if (!Array.isArray(categorias)) {
+                throw new Error('Las categorías deben ser un array');
+            }
+            console.log('Categorías procesadas:', categorias);
+        } catch (error) {
+            console.error('Error al procesar categorías:', error);
+            return res.status(400).json({ 
+                error: 'Error al procesar las categorías',
+                details: error.message,
+                categorias_recibidas: categoriasRaw
+            });
+        }
+        
         // Crear la planta principal
         const plantaId = uuidv4();
+        
+        // Crear el directorio para las imágenes
+        const baseDir = path.join(__dirname, '../../frontend/src/assets/images/plantas');
+        const plantaDir = path.join(baseDir, plantaId);
+        if (!fs.existsSync(plantaDir)) {
+            fs.mkdirSync(plantaDir, { recursive: true });
+            console.log('Directorio creado:', plantaDir);
+        }
+
+        // Insertar la planta en la base de datos
         await db.query(
             `INSERT INTO plantas 
-             (id, nombre, nombre_cientifico, descripcion, precio, nivel_dificultad, stock) 
-             VALUES (?, ?, ?, ?, ?, ?, ?)`,
+             (id, nombre, nombre_cientifico, descripcion, precio, nivel_dificultad, stock, activo) 
+             VALUES (?, ?, ?, ?, ?, ?, ?, 1)`,
             [plantaId, nombre, nombre_cientifico, descripcion, precio, nivel_dificultad, stock || 0]
         );
         
         // Procesar categorías
         if (categorias.length > 0) {
-            const categoriasValues = categorias.map(catId => [plantaId, catId]);
-            await db.query(
-                'INSERT INTO plantas_categorias (planta_id, id_categoria) VALUES ?',
-                [categoriasValues]
-            );
+            try {
+                const categoriasValues = categorias.map(catId => [plantaId, catId]);
+                console.log('Insertando categorías:', categoriasValues);
+                await db.query(
+                    'INSERT INTO plantas_categorias (planta_id, id_categoria) VALUES ?',
+                    [categoriasValues]
+                );
+            } catch (error) {
+                console.error('Error al insertar categorías:', error);
+                await db.query('DELETE FROM plantas WHERE id = ?', [plantaId]);
+                return res.status(400).json({ 
+                    error: 'Error al insertar las categorías',
+                    details: error.message
+                });
+            }
         }
         
         // Procesar toxicidades
-        if (toxicidades && toxicidades.length > 0) {
+        let toxicidades = [];
+        try {
+            console.log('Toxicidades raw:', toxicidadesRaw);
+            if (typeof toxicidadesRaw === 'string') {
+                toxicidades = JSON.parse(toxicidadesRaw);
+            } else if (Array.isArray(toxicidadesRaw)) {
+                toxicidades = toxicidadesRaw;
+            }
+            if (!Array.isArray(toxicidades)) {
+                throw new Error('Las toxicidades deben ser un array');
+            }
+            console.log('Toxicidades procesadas:', toxicidades);
+        } catch (error) {
+            console.error('Error al procesar toxicidades:', error);
+            await db.query('DELETE FROM plantas WHERE id = ?', [plantaId]);
+            return res.status(400).json({ 
+                error: 'Error al procesar las toxicidades',
+                details: error.message,
+                toxicidades_recibidas: toxicidadesRaw
+            });
+        }
+        
+        if (toxicidades.length > 0) {
             try {
-                console.log('Toxicidades recibidas:', JSON.stringify(toxicidades, null, 2));
-                
                 const toxicidadesValues = toxicidades.map(t => {
-                    // Asegurarnos de que t sea un objeto y tenga las propiedades necesarias
                     const toxicidad = typeof t === 'string' ? JSON.parse(t) : t;
                     console.log('Procesando toxicidad:', toxicidad);
                     
@@ -222,7 +310,6 @@ const createPlanta = async (req, res, next) => {
                         throw new Error('ID de toxicidad no proporcionado');
                     }
                     
-                    // Validar que el ID sea un número o string válido
                     if (isNaN(toxicidad.id) && typeof toxicidad.id !== 'string') {
                         console.error('ID de toxicidad inválido:', toxicidad.id);
                         throw new Error('ID de toxicidad inválido');
@@ -246,7 +333,6 @@ const createPlanta = async (req, res, next) => {
                 console.log('Toxicidades insertadas correctamente');
             } catch (error) {
                 console.error('Error detallado al procesar toxicidades:', error);
-                // Si hay error en las toxicidades, eliminamos la planta creada
                 await db.query('DELETE FROM plantas WHERE id = ?', [plantaId]);
                 return res.status(400).json({ 
                     error: 'Error al procesar las toxicidades',
@@ -257,21 +343,49 @@ const createPlanta = async (req, res, next) => {
         } else {
             console.log('No se recibieron toxicidades para procesar');
         }
-        
-        // Procesar imágenes subidas
+
+        // Procesar la imagen después de crear la planta
         if (req.files && req.files.length > 0) {
-            const imagenesValues = req.files.map((file, index) => [
-                plantaId,
-                file.filename,
-                index,
-                index === 0 ? 1 : 0 // La primera imagen es la principal
-            ]);
+            const file = req.files[0];
+            const targetPath = path.join(plantaDir, 'principal.jpg');
             
-            await db.query(
-                `INSERT INTO imagenes_plantas 
-                 (planta_id, url, orden, es_principal) VALUES ?`,
-                [imagenesValues]
-            );
+            try {
+                // Mover el archivo a la ubicación correcta
+                fs.copyFileSync(file.path, targetPath);
+                fs.unlinkSync(file.path); // Eliminar el archivo temporal
+                
+                await db.query(
+                    `INSERT INTO imagenes_plantas 
+                     (planta_id, url, orden, es_principal) 
+                     VALUES (?, ?, 0, 1)`,
+                    [plantaId, 'principal.jpg']
+                );
+            } catch (error) {
+                console.error('Error al procesar la imagen:', error);
+            }
+        } else {
+            // Si no hay imagen subida, copiar la imagen por defecto
+            const defaultImagePath = path.join(__dirname, '../../frontend/src/assets/images/plantas/default/principal.jpg');
+            const targetImagePath = path.join(plantaDir, 'principal.jpg');
+            
+            try {
+                if (fs.existsSync(defaultImagePath)) {
+                    fs.copyFileSync(defaultImagePath, targetImagePath);
+                    console.log('Imagen por defecto copiada a:', targetImagePath);
+                } else {
+                    console.log('No se encontró la imagen por defecto, creando archivo vacío');
+                    fs.writeFileSync(targetImagePath, '');
+                }
+                
+                await db.query(
+                    `INSERT INTO imagenes_plantas 
+                     (planta_id, url, orden, es_principal) 
+                     VALUES (?, ?, 0, 1)`,
+                    [plantaId, 'principal.jpg']
+                );
+            } catch (error) {
+                console.error('Error al copiar la imagen por defecto:', error);
+            }
         }
         
         res.status(201).json({
@@ -280,6 +394,7 @@ const createPlanta = async (req, res, next) => {
             message: 'Planta creada exitosamente'
         });
     } catch (error) {
+        console.error('Error general en createPlanta:', error);
         next(error);
     }
 };
@@ -292,27 +407,15 @@ const updatePlanta = async (req, res, next) => {
         console.log('Body recibido:', req.body);
         console.log('Archivos recibidos:', req.files);
 
-        // Parsear categorías y toxicidades si vienen como strings
-        let categorias = [];
-        let toxicidades = [];
-        
+        // Parsear los datos de la planta
+        let plantData;
         try {
-            if (typeof req.body.categorias === 'string') {
-                categorias = JSON.parse(req.body.categorias);
-            } else if (Array.isArray(req.body.categorias)) {
-                categorias = req.body.categorias;
-            }
-
-            if (typeof req.body.toxicidades === 'string') {
-                toxicidades = JSON.parse(req.body.toxicidades);
-            } else if (Array.isArray(req.body.toxicidades)) {
-                toxicidades = req.body.toxicidades;
-            }
-        } catch (parseError) {
-            console.error('Error al parsear categorías o toxicidades:', parseError);
+            plantData = JSON.parse(req.body.plantData);
+        } catch (error) {
+            console.error('Error al parsear plantData:', error);
             return res.status(400).json({ 
-                error: 'Error en el formato de categorías o toxicidades',
-                details: parseError.message 
+                error: 'Error en el formato de los datos de la planta',
+                details: error.message 
             });
         }
 
@@ -323,8 +426,10 @@ const updatePlanta = async (req, res, next) => {
             descripcion, 
             precio, 
             nivel_dificultad, 
-            stock
-        } = req.body;
+            stock,
+            categorias,
+            toxicidades
+        } = plantData;
 
         // Validar datos requeridos
         if (!nombre || !descripcion || !precio || !nivel_dificultad) {
@@ -355,7 +460,7 @@ const updatePlanta = async (req, res, next) => {
 
         // Actualizar categorías
         await db.query('DELETE FROM plantas_categorias WHERE planta_id = ?', [id]);
-        if (categorias.length > 0) {
+        if (categorias && categorias.length > 0) {
             const categoriasValues = categorias.map(catId => [id, catId]);
             await db.query(
                 'INSERT INTO plantas_categorias (planta_id, id_categoria) VALUES ?',
@@ -365,30 +470,12 @@ const updatePlanta = async (req, res, next) => {
 
         // Actualizar toxicidades
         await db.query('DELETE FROM planta_toxicidad WHERE planta_id = ?', [id]);
-        if (toxicidades.length > 0) {
-            try {
-                const toxicidadesValues = toxicidades.map(t => {
-                    // Asegurarnos de que t sea un objeto y tenga las propiedades necesarias
-                    const toxicidad = typeof t === 'string' ? JSON.parse(t) : t;
-                    if (!toxicidad.id) {
-                        throw new Error('ID de toxicidad no proporcionado');
-                    }
-                    return [id, toxicidad.id, toxicidad.detalles || ''];
-                });
-                
-                console.log('Insertando toxicidades:', toxicidadesValues);
-                
-                await db.query(
-                    'INSERT INTO planta_toxicidad (planta_id, toxicidad_id, detalles) VALUES ?',
-                    [toxicidadesValues]
-                );
-            } catch (error) {
-                console.error('Error al procesar toxicidades:', error);
-                return res.status(400).json({ 
-                    error: 'Error al procesar las toxicidades',
-                    details: error.message 
-                });
-            }
+        if (toxicidades && toxicidades.length > 0) {
+            const toxicidadesValues = toxicidades.map(t => [id, t.id, t.detalles || '']);
+            await db.query(
+                'INSERT INTO planta_toxicidad (planta_id, toxicidad_id, detalles) VALUES ?',
+                [toxicidadesValues]
+            );
         }
 
         // Procesar nuevas imágenes si se subieron
@@ -401,18 +488,30 @@ const updatePlanta = async (req, res, next) => {
                 );
                 const startOrder = (maxOrder[0]?.maxOrden || 0) + 1;
 
-                const imagenesValues = req.files.map((file, index) => [
-                    id,
-                    file.filename,
-                    startOrder + index,
-                    startOrder === 1 ? 1 : 0 // La primera imagen es principal solo si es la primera
-                ]);
+                // Crear el directorio para las imágenes si no existe
+                const baseDir = path.join(__dirname, '../../frontend/src/assets/images/plantas');
+                const plantaDir = path.join(baseDir, id);
+                if (!fs.existsSync(plantaDir)) {
+                    fs.mkdirSync(plantaDir, { recursive: true });
+                }
 
-                await db.query(
-                    `INSERT INTO imagenes_plantas 
-                     (planta_id, url, orden, es_principal) VALUES ?`,
-                    [imagenesValues]
-                );
+                // Procesar cada imagen
+                for (let i = 0; i < req.files.length; i++) {
+                    const file = req.files[i];
+                    const targetPath = path.join(plantaDir, 'principal.jpg');
+                    
+                    // Mover el archivo a la ubicación correcta
+                    fs.copyFileSync(file.path, targetPath);
+                    fs.unlinkSync(file.path); // Eliminar el archivo temporal
+
+                    // Insertar en la base de datos
+                    await db.query(
+                        `INSERT INTO imagenes_plantas 
+                         (planta_id, url, orden, es_principal) 
+                         VALUES (?, ?, ?, ?)`,
+                        [id, 'principal.jpg', startOrder + i, i === 0 ? 1 : 0]
+                    );
+                }
             } catch (error) {
                 console.error('Error al procesar imágenes:', error);
                 // No lanzamos el error para permitir que la actualización continúe
@@ -436,20 +535,33 @@ const updatePlanta = async (req, res, next) => {
 const deletePlanta = async (req, res, next) => {
     try {
         const { id } = req.params;
+        console.log('Intentando eliminar planta con ID:', id);
         
         // Verificar si la planta existe
         const [plantas] = await db.query('SELECT * FROM plantas WHERE id = ?', [id]);
         if (plantas.length === 0) {
+            console.log('Planta no encontrada con ID:', id);
             return res.status(404).json({ error: 'Planta no encontrada' });
         }
         
+        console.log('Planta encontrada, actualizando estado activo a 0');
+        
         // Borrado lógico en lugar de físico
-        await db.query('UPDATE plantas SET activo = 0 WHERE id = ?', [id]);
+        const [result] = await db.query('UPDATE plantas SET activo = 0 WHERE id = ?', [id]);
+        
+        console.log('Resultado de la actualización:', result);
+        
+        if (result.affectedRows === 0) {
+            console.log('No se pudo actualizar la planta');
+            return res.status(500).json({ error: 'No se pudo eliminar la planta' });
+        }
         
         res.json({
-            message: 'Planta desactivada exitosamente'
+            message: 'Planta desactivada exitosamente',
+            affectedRows: result.affectedRows
         });
     } catch (error) {
+        console.error('Error al eliminar planta:', error);
         next(error);
     }
 };
@@ -484,10 +596,10 @@ const searchPlantas = async (req, res, next) => {
 const filterPlantas = async (req, res, next) => {
     try {
         const { categoria, dificultad, precio_min, precio_max } = req.query;
+        console.log('Filtros recibidos:', { categoria, dificultad, precio_min, precio_max });
         
         let query = `
             SELECT DISTINCT p.*, 
-                   (SELECT url FROM imagenes_plantas WHERE planta_id = p.id AND es_principal = 1 LIMIT 1) AS imagen_principal,
                    GROUP_CONCAT(DISTINCT c.nombre) AS nombres_categorias
             FROM plantas p
             LEFT JOIN plantas_categorias pc ON p.id = pc.planta_id
@@ -503,7 +615,6 @@ const filterPlantas = async (req, res, next) => {
         }
         
         if (dificultad) {
-            // Asegurarnos de que el valor de dificultad coincida con el ENUM
             const dificultadValida = ['facil', 'medio', 'dificil'].includes(dificultad.toLowerCase());
             if (dificultadValida) {
                 query += ' AND LOWER(p.nivel_dificultad) = LOWER(?)';
@@ -527,7 +638,37 @@ const filterPlantas = async (req, res, next) => {
         console.log('Parámetros:', params);
         
         const [plantas] = await db.query(query, params);
+        console.log('Plantas encontradas:', plantas.length);
+
+        // Obtener las imágenes para cada planta
+        for (let planta of plantas) {
+            console.log('Procesando planta:', planta.id);
+            const [imagenes] = await db.query(
+                'SELECT * FROM imagenes_plantas WHERE planta_id = ? ORDER BY es_principal DESC',
+                [planta.id]
+            );
+            console.log('Imágenes encontradas para planta', planta.id, ':', imagenes);
+            
+            if (imagenes.length > 0) {
+                // Procesar las URLs de las imágenes para asegurar consistencia
+                planta.imagenes = imagenes.map(img => ({
+                    ...img,
+                    url: img.url.startsWith('http') ? 
+                        `assets/images/plantas/${planta.id}/principal.jpg` : 
+                        img.url
+                }));
+                
+                const imagenPrincipal = planta.imagenes.find(img => img.es_principal) || planta.imagenes[0];
+                planta.imagen_principal = imagenPrincipal.url;
+                console.log('Imagen principal establecida:', planta.imagen_principal);
+            } else {
+                planta.imagen_principal = 'principal.jpg';
+                planta.imagenes = [{ url: 'principal.jpg', es_principal: true }];
+                console.log('Usando imagen por defecto para planta:', planta.id);
+            }
+        }
         
+        console.log('Primera planta de ejemplo:', JSON.stringify(plantas[0], null, 2));
         res.json(plantas);
     } catch (error) {
         console.error('Error en filterPlantas:', error);
@@ -581,6 +722,54 @@ const verifyEmail = async (req, res) => {
     }
 };
 
+// Agregar imagen a una planta existente
+const addPlantaImage = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        
+        // Verificar si la planta existe
+        const [plantas] = await db.query('SELECT * FROM plantas WHERE id = ?', [id]);
+        if (plantas.length === 0) {
+            return res.status(404).json({ error: 'Planta no encontrada' });
+        }
+        
+        // Crear el directorio para las imágenes si no existe
+        const baseDir = path.join(__dirname, '../../frontend/src/assets/images/plantas');
+        const plantaDir = path.join(baseDir, id);
+        if (!fs.existsSync(plantaDir)) {
+            fs.mkdirSync(plantaDir, { recursive: true });
+            console.log('Directorio creado:', plantaDir);
+        }
+        
+        // Procesar la imagen
+        if (req.file) {
+            const targetPath = path.join(plantaDir, 'principal.jpg');
+            
+            // Mover el archivo a la ubicación correcta
+            fs.copyFileSync(req.file.path, targetPath);
+            fs.unlinkSync(req.file.path); // Eliminar el archivo temporal
+            
+            // Actualizar la base de datos
+            await db.query(
+                `INSERT INTO imagenes_plantas 
+                 (planta_id, url, orden, es_principal) 
+                 VALUES (?, ?, 0, 1)`,
+                [id, 'principal.jpg']
+            );
+            
+            res.json({
+                message: 'Imagen agregada exitosamente',
+                path: targetPath
+            });
+        } else {
+            res.status(400).json({ error: 'No se proporcionó ninguna imagen' });
+        }
+    } catch (error) {
+        console.error('Error al agregar imagen:', error);
+        next(error);
+    }
+};
+
 module.exports = {
     getPlantas,
     getPlantaById,
@@ -592,5 +781,6 @@ module.exports = {
     verifyEmail,
     handleImageUpload,
     isAdmin,
-    verifyToken
+    verifyToken,
+    addPlantaImage
 };

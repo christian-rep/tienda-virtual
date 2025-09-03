@@ -1,8 +1,9 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
+import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ProductsService } from '../../../services/products.service';
 import { Product } from '../../../interfaces/product.interface';
+import { Planta, Toxicidad, Categoria } from '../../../interfaces/plant.interface';
 
 interface ImagenPrevia {
   file: File | null;
@@ -16,24 +17,40 @@ interface ImagenPrevia {
   templateUrl: './plant-management.component.html',
   styleUrls: ['./plant-management.component.scss'],
   standalone: true,
-  imports: [CommonModule, FormsModule]
+  imports: [CommonModule, FormsModule, ReactiveFormsModule]
 })
 export class PlantManagementComponent implements OnInit {
-  plantas: Product[] = [];
-  plantaSeleccionada: Product | null = null;
+  plantas: Planta[] = [];
+  categorias: Categoria[] = [];
+  nivelesToxicidad: Toxicidad[] = [];
+  plantaSeleccionada: Planta | null = null;
+  plantaForm: FormGroup;
+  imagenesPrevia: ImagenPrevia[] = [];
   modoEdicion: 'crear' | 'editar' | null = null;
   loading: boolean = true;
   error: string = '';
-  categorias: {id: number, nombre: string}[] = [];
-  nivelesToxicidad: {id: number, nivel: string}[] = [];
-  imagenesPrevia: ImagenPrevia[] = [];
+  imagenesSeleccionadas: File[] = [];
 
-  constructor(private productsService: ProductsService) {}
+  constructor(
+    private productsService: ProductsService,
+    private fb: FormBuilder
+  ) {
+    this.plantaForm = this.fb.group({
+      nombre: ['', Validators.required],
+      nombre_cientifico: [''],
+      descripcion: ['', Validators.required],
+      precio: [0, [Validators.required, Validators.min(0)]],
+      stock: [0, [Validators.required, Validators.min(0)]],
+      nivel_dificultad: ['facil', Validators.required],
+      categorias: [[], Validators.required],
+      toxicidades: [null, Validators.required]
+    });
+  }
 
   ngOnInit(): void {
-    this.cargarPlantas();
     this.cargarCategorias();
     this.cargarNivelesToxicidad();
+    this.cargarPlantas();
   }
 
   cargarPlantas(): void {
@@ -41,11 +58,24 @@ export class PlantManagementComponent implements OnInit {
     this.productsService.getProducts().subscribe({
       next: (data) => {
         console.log('Plantas cargadas:', data);
-        // Asegurarnos de que cada planta tenga un array de categorías
-        this.plantas = data.map(planta => ({
-          ...planta,
-          categorias: planta.categorias || []
-        }));
+        this.plantas = data.map(planta => {
+          const categoriasProcesadas = planta.categorias.map(cat => {
+            if (typeof cat === 'object') {
+              return cat;
+            } else {
+              const categoriaEncontrada = this.categorias.find(c => c.id === Number(cat));
+              return categoriaEncontrada || { id: Number(cat), nombre: '' };
+            }
+          });
+
+          return {
+            ...planta,
+            id: planta.id,
+            categorias: categoriasProcesadas,
+            toxicidades: planta.toxicidades || []
+          };
+        });
+        console.log('Plantas procesadas:', this.plantas);
         this.loading = false;
       },
       error: (err) => {
@@ -61,6 +91,7 @@ export class PlantManagementComponent implements OnInit {
       next: (data) => {
         console.log('Categorías cargadas:', data);
         this.categorias = data;
+        this.cargarPlantas();
       },
       error: (err) => {
         console.error('Error al cargar las categorías:', err);
@@ -72,7 +103,12 @@ export class PlantManagementComponent implements OnInit {
   cargarNivelesToxicidad(): void {
     this.productsService.getToxicidadLevels().subscribe({
       next: (data) => {
-        this.nivelesToxicidad = data;
+        this.nivelesToxicidad = data.map(t => ({
+          id: t.id,
+          nivel: t.nivel,
+          descripcion: t.descripcion || '',
+          detalles: t.detalles || ''
+        }));
       },
       error: (err) => {
         console.error('Error al cargar los niveles de toxicidad:', err);
@@ -82,8 +118,9 @@ export class PlantManagementComponent implements OnInit {
   }
 
   nuevaPlanta(): void {
-    this.plantaSeleccionada = {
-      id: '',
+    const toxicidadNoToxica = this.nivelesToxicidad.find(t => t.nivel === 'no_toxica');
+    
+    this.plantaForm.reset({
       nombre: '',
       nombre_cientifico: '',
       descripcion: '',
@@ -91,45 +128,70 @@ export class PlantManagementComponent implements OnInit {
       stock: 0,
       nivel_dificultad: 'facil',
       categorias: [],
-      activo: true,
+      toxicidades: toxicidadNoToxica?.id || 1
+    });
+
+    this.plantaSeleccionada = {
+      id: 0,
+      nombre: '',
+      nombre_cientifico: '',
+      descripcion: '',
+      precio: 0,
+      stock: 0,
+      nivel_dificultad: 'facil',
+      categorias: [],
       toxicidades: [{
-        id: this.nivelesToxicidad.find(t => t.nivel === 'no_toxica')?.id || 1,
+        id: toxicidadNoToxica?.id || 1,
         nivel: 'no_toxica',
-        descripcion: '',
+        descripcion: toxicidadNoToxica?.descripcion || '',
         detalles: ''
-      }]
+      }],
+      activo: true
     };
+    
     this.modoEdicion = 'crear';
     this.imagenesPrevia = [];
   }
 
-  editarPlanta(planta: Product): void {
+  editarPlanta(planta: Planta): void {
     console.log('Editando planta:', planta);
     
-    // Asegurarnos de que las categorías sean números y existan
-    const categoriasNumericas = (planta.categorias || []).map(cat => {
-      console.log('Categoría original:', cat);
-      const catId = typeof cat === 'object' ? (cat as any).id : Number(cat);
-      console.log('Categoría convertida:', catId);
-      return catId;
+    // Asegurarnos de que las categorías sean números
+    const categoriasIds = planta.categorias.map(cat => {
+      if (typeof cat === 'object') {
+        return cat.id;
+      }
+      return Number(cat);
     });
     
-    console.log('Categorías convertidas:', categoriasNumericas);
+    // Obtener el ID de la toxicidad
+    let toxicidadId;
+    if (planta.toxicidades && planta.toxicidades.length > 0) {
+      if (typeof planta.toxicidades[0] === 'object') {
+        toxicidadId = planta.toxicidades[0].id;
+      } else {
+        toxicidadId = Number(planta.toxicidades[0]);
+      }
+    } else {
+      toxicidadId = this.nivelesToxicidad.find(t => t.nivel === 'no_toxica')?.id || 1;
+    }
     
-    // Crear una copia profunda de la planta
-    this.plantaSeleccionada = { 
-      ...planta,
-      categorias: categoriasNumericas,
-      toxicidades: planta.toxicidades || [{
-        id: this.nivelesToxicidad.find(t => t.nivel === 'no_toxica')?.id || 1,
-        nivel: 'no_toxica',
-        descripcion: '',
-        detalles: ''
-      }]
-    };
+    console.log('Categorías seleccionadas:', categoriasIds);
+    console.log('Toxicidad seleccionada:', toxicidadId);
     
-    console.log('Planta seleccionada:', this.plantaSeleccionada);
+    // Actualizar el formulario
+    this.plantaForm.patchValue({
+      nombre: planta.nombre,
+      nombre_cientifico: planta.nombre_cientifico || '',
+      descripcion: planta.descripcion,
+      precio: planta.precio,
+      stock: planta.stock,
+      nivel_dificultad: planta.nivel_dificultad,
+      categorias: categoriasIds,
+      toxicidades: toxicidadId
+    });
     
+    this.plantaSeleccionada = planta;
     this.modoEdicion = 'editar';
     this.imagenesPrevia = [];
 
@@ -142,7 +204,6 @@ export class PlantManagementComponent implements OnInit {
         id: img.id,
         es_principal: img.es_principal
       }));
-      console.log('Imágenes cargadas:', this.imagenesPrevia);
     }
   }
 
@@ -150,6 +211,8 @@ export class PlantManagementComponent implements OnInit {
     this.plantaSeleccionada = null;
     this.modoEdicion = null;
     this.imagenesPrevia = [];
+    this.plantaForm.reset();
+    this.error = '';
   }
 
   onFileSelected(event: Event): void {
@@ -167,10 +230,28 @@ export class PlantManagementComponent implements OnInit {
         if (file.type.startsWith('image/')) {
           const reader = new FileReader();
           reader.onload = (e: any) => {
-            this.imagenesPrevia.push({
-              file: file,
-              url: e.target.result
-            });
+            // Convertir la imagen a JPEG si no lo es
+            const img = new Image();
+            img.onload = () => {
+              const canvas = document.createElement('canvas');
+              canvas.width = img.width;
+              canvas.height = img.height;
+              const ctx = canvas.getContext('2d');
+              if (ctx) {
+                ctx.drawImage(img, 0, 0);
+                canvas.toBlob((blob) => {
+                  if (blob) {
+                    const jpegFile = new File([blob], 'temp.jpg', { type: 'image/jpeg' });
+                    this.imagenesPrevia.push({
+                      file: jpegFile,
+                      url: e.target.result,
+                      es_principal: this.imagenesPrevia.length === 0 // La primera imagen será la principal
+                    });
+                  }
+                }, 'image/jpeg', 0.9);
+              }
+            };
+            img.src = e.target.result;
           };
           reader.readAsDataURL(file);
         }
@@ -182,85 +263,92 @@ export class PlantManagementComponent implements OnInit {
     const index = this.imagenesPrevia.indexOf(imagen);
     if (index > -1) {
       this.imagenesPrevia.splice(index, 1);
+      // Si eliminamos la imagen principal, hacer la primera imagen restante como principal
+      if (imagen.es_principal && this.imagenesPrevia.length > 0) {
+        this.imagenesPrevia[0].es_principal = true;
+      }
     }
+  }
+
+  setPrincipalImage(imagen: ImagenPrevia): void {
+    this.imagenesPrevia.forEach(img => {
+      img.es_principal = img === imagen;
+    });
   }
 
   guardarPlanta(): void {
-    if (!this.plantaSeleccionada) return;
+    if (this.plantaForm.valid) {
+      const formData = this.plantaForm.value;
+      
+      // Preparar los datos antes de enviarlos
+      const plantData = {
+        ...formData,
+        // Asegurarnos de que las categorías sean un array de números
+        categorias: Array.isArray(formData.categorias) ? formData.categorias : [formData.categorias],
+        // Asegurarnos de que las toxicidades sean un array de objetos
+        toxicidades: [{
+          id: formData.toxicidades,
+          nivel: this.nivelesToxicidad.find(t => t.id === formData.toxicidades)?.nivel || 'no_toxica',
+          descripcion: this.nivelesToxicidad.find(t => t.id === formData.toxicidades)?.descripcion || '',
+          detalles: ''
+        }]
+      };
 
-    // Asegurarnos de que las categorías sean números
-    const categoriasNumericas = this.plantaSeleccionada.categorias.map(cat => 
-      typeof cat === 'object' ? (cat as any).id : Number(cat)
-    );
-    this.plantaSeleccionada.categorias = categoriasNumericas;
-
-    if (!this.plantaSeleccionada.toxicidades || this.plantaSeleccionada.toxicidades.length === 0) {
-      const toxicidadNoToxica = this.nivelesToxicidad.find(t => t.nivel === 'no_toxica');
-      this.plantaSeleccionada.toxicidades = [{
-        id: toxicidadNoToxica?.id || 1,
-        nivel: 'no_toxica',
-        descripcion: '',
-        detalles: ''
-      }];
+      // Preparar las imágenes
+      const imagenes = this.imagenesPrevia
+        .filter(img => img.file)
+        .map(img => img.file as File);
+      
+      console.log('Datos a enviar:', {
+        plantData,
+        imagenes: imagenes.length
+      });
+      
+      if (this.plantaSeleccionada && this.plantaSeleccionada.id !== 0) {
+        // Actualizar planta existente
+        this.productsService.updateProduct(this.plantaSeleccionada.id.toString(), plantData, imagenes)
+          .subscribe({
+            next: (response) => {
+              console.log('Planta actualizada:', response);
+              this.mostrarMensaje('Planta actualizada exitosamente');
+              this.cargarPlantas();
+              this.cerrarModal();
+            },
+            error: (error) => {
+              console.error('Error al actualizar planta:', error);
+              this.mostrarMensaje('Error al actualizar la planta', true);
+            }
+          });
+      } else {
+        // Crear nueva planta
+        this.productsService.createProduct(plantData, imagenes)
+          .subscribe({
+            next: (response) => {
+              console.log('Planta creada:', response);
+              this.mostrarMensaje('Planta creada exitosamente');
+              this.cargarPlantas();
+              this.cerrarModal();
+            },
+            error: (error) => {
+              console.error('Error al crear planta:', error);
+              this.mostrarMensaje('Error al crear la planta', true);
+            }
+          });
+      }
+    } else {
+      this.plantaForm.markAllAsTouched();
+      this.mostrarMensaje('Por favor complete todos los campos requeridos', true);
     }
-
-    // Crear FormData para enviar las imágenes
-    const formData = new FormData();
-    formData.append('nombre', this.plantaSeleccionada.nombre);
-    formData.append('nombre_cientifico', this.plantaSeleccionada.nombre_cientifico || '');
-    formData.append('descripcion', this.plantaSeleccionada.descripcion);
-    formData.append('precio', this.plantaSeleccionada.precio.toString());
-    formData.append('nivel_dificultad', this.plantaSeleccionada.nivel_dificultad);
-    formData.append('stock', this.plantaSeleccionada.stock.toString());
-    
-    // Agregar categorías
-    this.plantaSeleccionada.categorias.forEach(catId => {
-      formData.append('categorias[]', catId.toString());
-    });
-    
-    // Agregar toxicidades
-    this.plantaSeleccionada.toxicidades.forEach(t => {
-      formData.append('toxicidades[]', JSON.stringify(t));
-    });
-    
-    // Agregar solo las imágenes nuevas (las que tienen file)
-    this.imagenesPrevia.forEach((imagen, index) => {
-      if (imagen.file) {
-        formData.append('imagenes', imagen.file);
-        // Si es la primera imagen y no hay imágenes principales, marcarla como principal
-        if (index === 0 && !this.imagenesPrevia.some(img => img.es_principal)) {
-          formData.append('es_principal', 'true');
-        }
-      }
-    });
-
-    console.log('Enviando datos:', {
-      planta: this.plantaSeleccionada,
-      imagenes: this.imagenesPrevia
-    });
-
-    const operacion = this.modoEdicion === 'crear'
-      ? this.productsService.createProduct(formData)
-      : this.productsService.updateProduct(this.plantaSeleccionada.id, formData);
-
-    operacion.subscribe({
-      next: (response) => {
-        console.log('Respuesta del servidor:', response);
-        this.cargarPlantas();
-        this.cancelarEdicion();
-      },
-      error: (err) => {
-        console.error('Error al guardar la planta:', err);
-        this.error = 'No se pudo guardar la planta. Por favor, intente más tarde.';
-      }
-    });
   }
 
-  eliminarPlanta(id: string): void {
+  eliminarPlanta(id: number | string): void {
     if (confirm('¿Está seguro de que desea eliminar esta planta?')) {
-      this.productsService.deleteProduct(id).subscribe({
-        next: () => {
-          this.cargarPlantas();
+      console.log('Eliminando planta con ID:', id);
+      this.productsService.deleteProduct(id.toString()).subscribe({
+        next: (response) => {
+          console.log('Respuesta del servidor al eliminar:', response);
+          this.plantas = this.plantas.filter(planta => planta.id !== id);
+          console.log('Lista de plantas actualizada:', this.plantas);
         },
         error: (err) => {
           console.error('Error al eliminar la planta:', err);
@@ -270,8 +358,15 @@ export class PlantManagementComponent implements OnInit {
     }
   }
 
-  getCategoryName(catId: number): string {
-    return this.categorias.find(c => c.id === catId)?.nombre || '';
+  getCategoryName(category: Categoria | number | any): string {
+    if (typeof category === 'number') {
+      const foundCategory = this.categorias.find(cat => cat.id === category);
+      return foundCategory ? foundCategory.nombre : '';
+    }
+    if (typeof category === 'object' && category.nombre) {
+      return category.nombre;
+    }
+    return '';
   }
 
   actualizarToxicidad(nivel: string): void {
@@ -308,5 +403,45 @@ export class PlantManagementComponent implements OnInit {
     }
 
     console.log('Toxicidades actualizadas:', this.plantaSeleccionada.toxicidades);
+  }
+
+  private preparePlantData(planta: Planta): Planta {
+    const toxicidadNoToxica = this.nivelesToxicidad.find(t => t.nivel === 'no_toxica');
+    const categoriasNumericas = planta.categorias?.map(cat => cat.id) || [];
+
+    return {
+      ...planta,
+      toxicidades: [{
+        nivel: toxicidadNoToxica?.nivel || 'no_toxica',
+        descripcion: toxicidadNoToxica?.descripcion || 'No tóxica',
+        detalles: toxicidadNoToxica?.detalles || ''
+      }],
+      categorias: categoriasNumericas.map(id => ({ id, nombre: this.getCategoryName(id) }))
+    };
+  }
+
+  private prepareToxicidadData(toxicidad: Toxicidad): Toxicidad {
+    return {
+      nivel: toxicidad.nivel,
+      descripcion: toxicidad.descripcion,
+      detalles: toxicidad.detalles || ''
+    };
+  }
+
+  cerrarModal(): void {
+    this.plantaSeleccionada = null;
+    this.plantaForm.reset();
+    this.imagenesSeleccionadas = [];
+    this.error = '';
+  }
+
+  mostrarMensaje(mensaje: string, esError: boolean = false): void {
+    if (esError) {
+      console.error(mensaje);
+      this.error = mensaje;
+    } else {
+      console.log(mensaje);
+      this.error = '';
+    }
   }
 } 

@@ -63,6 +63,11 @@
     <div *ngFor="let producto of productosFiltrados" class="product-card">
       <div class="product-image">
         <img [src]="getProductImage(producto)" [alt]="producto.nombre">
+        <div class="product-overlay">
+          <button class="btn-view-details" (click)="verDetalles(producto)">
+            <i class="fas fa-info-circle"></i> Ver Detalles
+          </button>
+        </div>
       </div>
       <div class="product-info">
         <h3>{{ producto.nombre }}</h3>
@@ -100,12 +105,11 @@
           {{ producto.stock > 0 ? 'En stock' : 'Sin stock' }}
         </p>
         
-        <button class="btn-add-cart" (click)="addToCart(producto)" [disabled]="producto.stock === 0">
-          Agregar al Carrito
-        </button>
-        <button class="btn-view-details" (click)="verDetalles(producto)">
-          Ver Detalles
-        </button>
+        <div class="product-actions">
+          <button class="btn-add-cart" (click)="addToCart(producto)" [disabled]="producto.stock === 0">
+            <i class="fas fa-shopping-cart"></i> Agregar al Carrito
+          </button>
+        </div>
       </div>
     </div>
   </div>

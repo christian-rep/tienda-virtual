@@ -1,8 +1,16 @@
 const express = require('express');
 const router = express.Router();
-const categoriasController = require('../controllers/categoriasController');
+const db = require('../config/db');
 
-// Rutas públicas
-router.get('/', categoriasController.getCategorias);
+// Obtener todas las categorías
+router.get('/', async (req, res) => {
+    try {
+        const [categorias] = await db.query('SELECT * FROM categorias ORDER BY nombre ASC');
+        res.json(categorias);
+    } catch (error) {
+        console.error('Error al obtener categorías:', error);
+        res.status(500).json({ error: 'Error al obtener las categorías' });
+    }
+});
 
 module.exports = router; 

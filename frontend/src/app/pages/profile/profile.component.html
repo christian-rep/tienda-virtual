@@ -1,0 +1,164 @@
+<div class="profile-container">
+  <div class="profile-card">
+    <h2>Mi Perfil</h2>
+    
+    <!-- Alertas -->
+    <div *ngIf="error" class="alert alert-danger">
+      {{ error }}
+    </div>
+    
+    <div *ngIf="success" class="alert alert-success">
+      {{ success }}
+    </div>
+
+    <!-- Pestañas -->
+    <div class="tabs">
+      <button 
+        class="tab-button" 
+        [class.active]="activeTab === 'profile'"
+        (click)="setActiveTab('profile')"
+      >
+        Datos Personales
+      </button>
+      <button 
+        class="tab-button" 
+        [class.active]="activeTab === 'password'"
+        (click)="setActiveTab('password')"
+      >
+        Cambiar Contraseña
+      </button>
+    </div>
+
+    <!-- Contenido de la pestaña de datos personales -->
+    <div *ngIf="activeTab === 'profile'" class="tab-content">
+      <div *ngIf="loading" class="loading-indicator">
+        <div class="spinner-border text-primary" role="status">
+          <span class="visually-hidden">Cargando...</span>
+        </div>
+        <p>Cargando datos del perfil...</p>
+      </div>
+      
+      <form *ngIf="!loading" [formGroup]="profileForm" (ngSubmit)="onSubmitProfile()">
+        <div class="form-group">
+          <label for="nombre">Nombre</label>
+          <input 
+            type="text" 
+            id="nombre" 
+            formControlName="nombre" 
+            class="form-control" 
+            [ngClass]="{'is-invalid': profileForm.get('nombre')?.invalid && profileForm.get('nombre')?.touched}"
+            placeholder="Ingrese su nombre"
+          >
+          <div *ngIf="profileForm.get('nombre')?.invalid && profileForm.get('nombre')?.touched" class="invalid-feedback">
+            {{ getErrorMessage('nombre', profileForm) }}
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label for="apellido">Apellido</label>
+          <input 
+            type="text" 
+            id="apellido" 
+            formControlName="apellido" 
+            class="form-control" 
+            [ngClass]="{'is-invalid': profileForm.get('apellido')?.invalid && profileForm.get('apellido')?.touched}"
+            placeholder="Ingrese su apellido"
+          >
+          <div *ngIf="profileForm.get('apellido')?.invalid && profileForm.get('apellido')?.touched" class="invalid-feedback">
+            {{ getErrorMessage('apellido', profileForm) }}
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label for="telefono">Teléfono</label>
+          <input 
+            type="tel" 
+            id="telefono" 
+            formControlName="telefono" 
+            class="form-control" 
+            placeholder="Ingrese su teléfono (opcional)"
+          >
+        </div>
+        
+        <div class="form-group">
+          <label for="direccion">Dirección</label>
+          <textarea 
+            id="direccion" 
+            formControlName="direccion" 
+            class="form-control" 
+            rows="3"
+            placeholder="Ingrese su dirección (opcional)"
+          ></textarea>
+        </div>
+        
+        <button 
+          type="submit" 
+          class="btn btn-primary w-100" 
+          [disabled]="profileForm.invalid || loading"
+        >
+          <span *ngIf="loading" class="spinner-border spinner-border-sm me-1"></span>
+          {{ loading ? 'Actualizando...' : 'Actualizar Perfil' }}
+        </button>
+      </form>
+    </div>
+
+    <!-- Contenido de la pestaña de cambio de contraseña -->
+    <div *ngIf="activeTab === 'password'" class="tab-content">
+      <form [formGroup]="passwordForm" (ngSubmit)="onSubmitPassword()">
+        <div class="form-group">
+          <label for="currentPassword">Contraseña Actual</label>
+          <input 
+            type="password" 
+            id="currentPassword" 
+            formControlName="currentPassword" 
+            class="form-control" 
+            [ngClass]="{'is-invalid': passwordForm.get('currentPassword')?.invalid && passwordForm.get('currentPassword')?.touched}"
+            placeholder="Ingrese su contraseña actual"
+          >
+          <div *ngIf="passwordForm.get('currentPassword')?.invalid && passwordForm.get('currentPassword')?.touched" class="invalid-feedback">
+            {{ getErrorMessage('currentPassword', passwordForm) }}
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label for="newPassword">Nueva Contraseña</label>
+          <input 
+            type="password" 
+            id="newPassword" 
+            formControlName="newPassword" 
+            class="form-control" 
+            [ngClass]="{'is-invalid': passwordForm.get('newPassword')?.invalid && passwordForm.get('newPassword')?.touched}"
+            placeholder="Ingrese su nueva contraseña"
+          >
+          <div *ngIf="passwordForm.get('newPassword')?.invalid && passwordForm.get('newPassword')?.touched" class="invalid-feedback">
+            {{ getErrorMessage('newPassword', passwordForm) }}
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label for="confirmPassword">Confirmar Nueva Contraseña</label>
+          <input 
+            type="password" 
+            id="confirmPassword" 
+            formControlName="confirmPassword" 
+            class="form-control" 
+            [ngClass]="{'is-invalid': passwordForm.get('confirmPassword')?.invalid && passwordForm.get('confirmPassword')?.touched}"
+            placeholder="Confirme su nueva contraseña"
+          >
+          <div *ngIf="passwordForm.get('confirmPassword')?.invalid && passwordForm.get('confirmPassword')?.touched" class="invalid-feedback">
+            {{ getErrorMessage('confirmPassword', passwordForm) }}
+          </div>
+        </div>
+        
+        <button 
+          type="submit" 
+          class="btn btn-warning w-100" 
+          [disabled]="passwordForm.invalid || passwordLoading"
+        >
+          <span *ngIf="passwordLoading" class="spinner-border spinner-border-sm me-1"></span>
+          {{ passwordLoading ? 'Cambiando...' : 'Cambiar Contraseña' }}
+        </button>
+      </form>
+    </div>
+  </div>
+</div> 

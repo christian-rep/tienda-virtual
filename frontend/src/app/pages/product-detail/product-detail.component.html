@@ -1,0 +1,59 @@
+<div class="product-detail-container" *ngIf="!loading && !error">
+  <div class="product-detail" *ngIf="producto">
+    <div class="product-images">
+      <div class="main-image">
+        <img [src]="producto.imagen_principal" [alt]="producto.nombre">
+      </div>
+      <div class="thumbnail-images" *ngIf="producto.imagenes && producto.imagenes.length > 1">
+        <div class="thumbnail" *ngFor="let imagen of producto.imagenes" (click)="producto.imagen_principal = imagen.url">
+          <img [src]="imagen.url" [alt]="producto.nombre">
+        </div>
+      </div>
+    </div>
+
+    <div class="product-info">
+      <h1>{{ producto.nombre }}</h1>
+      <h2 *ngIf="producto.nombre_cientifico">{{ producto.nombre_cientifico }}</h2>
+      
+      <div class="price">${{ producto.precio }}</div>
+      
+      <div class="detail-item">
+        <span class="label">Dificultad:</span>
+        <span class="value">{{ producto.nivel_dificultad }}</span>
+      </div>
+
+      <div class="detail-item">
+        <span class="label">Stock:</span>
+        <span class="value">{{ producto.stock }} unidades</span>
+      </div>
+
+      <div class="detail-item" *ngIf="producto.categorias && producto.categorias.length > 0">
+        <span class="label">Categorías:</span>
+        <span class="value">{{ getCategoryNames() }}</span>
+      </div>
+
+      <div class="description">
+        <h3>Descripción</h3>
+        <p>{{ producto.descripcion }}</p>
+      </div>
+
+      <div class="actions">
+        <button class="btn-add-cart" 
+                [disabled]="producto.stock <= 0"
+                (click)="addToCart(producto)">
+          {{ producto.stock > 0 ? 'Agregar al carrito' : 'Sin stock' }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="loading" *ngIf="loading">
+  <div class="spinner"></div>
+  <p>Cargando producto...</p>
+</div>
+
+<div class="error" *ngIf="error">
+  <p>{{ error }}</p>
+  <button (click)="goBack()">Volver a productos</button>
+</div> 

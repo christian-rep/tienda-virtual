@@ -1,20 +1,36 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { BehaviorSubject, Observable, of } from 'rxjs';
-import { map, tap, catchError } from 'rxjs/operators';
-import { User, LoginCredentials, RegisterData, AuthResponse } from '../interfaces/user.interface';
+import { HttpClient, HttpInterceptor, HttpRequest, HttpHandler, HttpEvent } from '@angular/common/http';
+import { BehaviorSubject, Observable, of, throwError } from 'rxjs';
+import { map, tap, catchError, take } from 'rxjs/operators';
 import { Router } from '@angular/router';
+import { environment } from '../../environments/environment';
+import { Usuario, LoginCredentials, RegisterData, LoginResponse } from '../interfaces/user.interface';
+
+@Injectable()
+export class AuthInterceptor implements HttpInterceptor {
+  intercept(request: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
+    const token = localStorage.getItem('token');
+    if (token) {
+      request = request.clone({
+        setHeaders: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+    }
+    return next.handle(request);
+  }
+}
 
 @Injectable({
   providedIn: 'root'
 })
 export class AuthService {
-  private apiUrl = 'http://localhost:5000/api/auth';
+  private apiUrl = environment.apiUrl;
   private isAuthenticatedSubject = new BehaviorSubject<boolean>(this.hasToken());
   isAuthenticated$ = this.isAuthenticatedSubject.asObservable();
   
-  private currentUserSubject = new BehaviorSubject<User | null>(this.getStoredUser());
-  currentUser$ = this.currentUserSubject.asObservable();
+  private currentUserSubject = new BehaviorSubject<Usuario | null>(null);
+  public currentUser$ = this.currentUserSubject.asObservable();
 
   constructor(
     private http: HttpClient,
@@ -24,11 +40,13 @@ export class AuthService {
     this.checkToken();
   }
 
-  private getStoredUser(): User | null {
-    const userStr = localStorage.getItem('user');
+  private getStoredUser(): Usuario | null {
+    const userStr = localStorage.getItem('currentUser');
     if (userStr) {
       try {
-        return JSON.parse(userStr) as User;
+        const user = JSON.parse(userStr) as Usuario;
+        this.isAuthenticatedSubject.next(true);
+        return user;
       } catch (error) {
         console.error('Error al parsear usuario almacenado:', error);
         return null;
@@ -44,8 +62,8 @@ export class AuthService {
         const payload = JSON.parse(atob(token.split('.')[1]));
         if (payload.exp * 1000 > Date.now()) {
           this.isAuthenticatedSubject.next(true);
-          if (payload.user) {
-            this.currentUserSubject.next(payload.user);
+          if (payload.usuario) {
+            this.currentUserSubject.next(payload.usuario);
           }
         } else {
           this.logout();
@@ -54,6 +72,9 @@ export class AuthService {
         console.error('Error al verificar token:', error);
         this.logout();
       }
+    } else {
+      this.isAuthenticatedSubject.next(false);
+      this.currentUserSubject.next(null);
     }
   }
 
@@ -61,36 +82,42 @@ export class AuthService {
     return !!localStorage.getItem('token');
   }
 
-  login(credentials: LoginCredentials): Observable<AuthResponse> {
-    return this.http.post<AuthResponse>(`${this.apiUrl}/login`, credentials)
-      .pipe(
-        tap(response => {
-          this.handleAuthResponse(response);
-        })
-      );
+  login(credentials: LoginCredentials): Observable<LoginResponse> {
+    return this.http.post<LoginResponse>(`${this.apiUrl}/auth/login`, credentials).pipe(
+      tap(response => {
+        if (response.token && response.usuario) {
+          localStorage.setItem('token', response.token);
+          localStorage.setItem('currentUser', JSON.stringify(response.usuario));
+          this.currentUserSubject.next(response.usuario);
+          this.isAuthenticatedSubject.next(true);
+        }
+      }),
+      catchError(error => {
+        console.error('Error en login:', error);
+        return throwError(() => error);
+      })
+    );
   }
 
-  register(userData: RegisterData): Observable<AuthResponse> {
-    return this.http.post<AuthResponse>(`${this.apiUrl}/register`, userData)
-      .pipe(
-        tap(response => {
-          this.handleAuthResponse(response);
-        })
-      );
-  }
-
-  private handleAuthResponse(response: AuthResponse): void {
-    if (response.token && response.user) {
-      localStorage.setItem('token', response.token);
-      localStorage.setItem('user', JSON.stringify(response.user));
-      this.isAuthenticatedSubject.next(true);
-      this.currentUserSubject.next(response.user);
-    }
+  register(userData: RegisterData): Observable<LoginResponse> {
+    return this.http.post<LoginResponse>(`${this.apiUrl}/auth/registro`, userData).pipe(
+      tap(response => {
+        if (response.token && response.usuario) {
+          localStorage.setItem('token', response.token);
+          localStorage.setItem('currentUser', JSON.stringify(response.usuario));
+          this.currentUserSubject.next(response.usuario);
+        }
+      }),
+      catchError(error => {
+        console.error('Error en registro:', error);
+        return throwError(() => error);
+      })
+    );
   }
 
   logout(): void {
     localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    localStorage.removeItem('currentUser');
     this.isAuthenticatedSubject.next(false);
     this.currentUserSubject.next(null);
     this.router.navigate(['/login']);
@@ -101,25 +128,143 @@ export class AuthService {
   }
 
   isAdmin(): boolean {
-    const user = this.currentUserSubject.value;
-    return user?.rol === 'admin';
+    return this.currentUserSubject.value?.rol === 'admin';
   }
 
-  getUserProfile(): Observable<User> {
-    const user = localStorage.getItem('user');
-    if (user) {
-      return of(JSON.parse(user) as User);
-    }
-    return this.http.get<User>(`${this.apiUrl}/profile`);
+  getCurrentUser(): Usuario | null {
+    return this.currentUserSubject.value;
+  }
+
+  getUserProfile(): Observable<Usuario> {
+    return this.http.get<{ usuario: Usuario }>(`${this.apiUrl}/auth/perfil`).pipe(
+      map(response => response.usuario),
+      tap(user => {
+        // Actualizar el usuario en el localStorage y en el BehaviorSubject
+        localStorage.setItem('currentUser', JSON.stringify(user));
+        this.currentUserSubject.next(user);
+        console.log('Perfil del usuario obtenido:', user);
+      }),
+      catchError(error => {
+        console.error('Error al obtener perfil del usuario:', error);
+        return throwError(() => error);
+      })
+    );
   }
 
   getToken(): string | null {
     return localStorage.getItem('token');
   }
 
-  verifyEmail(token: string): Observable<{ success: boolean; message: string }> {
-    return this.http.get<{ success: boolean; message: string }>(
-      `${this.apiUrl}/verify-email?token=${token}`
+  verifyEmail(token: string): Observable<{ mensaje: string }> {
+    return this.http.get<{ mensaje: string }>(
+      `${this.apiUrl}/auth/verificar-email?token=${token}`
+    );
+  }
+
+  recuperarPassword(email: string): Observable<{ mensaje: string }> {
+    return this.http.post<{ mensaje: string }>(`${this.apiUrl}/auth/recuperar-password`, { email })
+      .pipe(
+        catchError(this.handleError)
+      );
+  }
+
+  resetPassword(token: string, newPassword: string): Observable<{ mensaje: string }> {
+    return this.http.post<{ mensaje: string }>(`${this.apiUrl}/auth/reset-password`, {
+      token,
+      password: newPassword
+    }).pipe(
+      catchError(this.handleError)
+    );
+  }
+
+  private handleError(error: any): Observable<never> {
+    console.error('Error en la petición:', error);
+    let errorMessage = 'Error desconocido';
+    
+    if (error.error instanceof ErrorEvent) {
+      // Error del cliente
+      errorMessage = `Error: ${error.error.message}`;
+    } else {
+      // Error del servidor
+      errorMessage = `Error ${error.status}: ${error.error?.mensaje || error.message}`;
+    }
+    
+    return throwError(() => new Error(errorMessage));
+  }
+
+  // Métodos para la gestión de usuarios
+  getUsers(): Observable<Usuario[]> {
+    return this.http.get<Usuario[]>(`${this.apiUrl}/usuarios`).pipe(
+      catchError(error => {
+        console.error('Error al obtener usuarios:', error);
+        return throwError(() => error);
+      })
+    );
+  }
+
+  createUser(userData: Omit<Usuario, 'id'>): Observable<Usuario> {
+    return this.http.post<Usuario>(`${this.apiUrl}/usuarios`, userData).pipe(
+      catchError(error => {
+        console.error('Error al crear usuario:', error);
+        return throwError(() => error);
+      })
+    );
+  }
+
+  updateUser(id: string, userData: Partial<Usuario>): Observable<Usuario> {
+    return this.http.put<Usuario>(`${this.apiUrl}/usuarios/${id}`, userData).pipe(
+      catchError(error => {
+        console.error('Error al actualizar usuario:', error);
+        return throwError(() => error);
+      })
+    );
+  }
+
+  deleteUser(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/usuarios/${id}`).pipe(
+      catchError(error => {
+        console.error('Error al eliminar usuario:', error);
+        return throwError(() => error);
+      })
+    );
+  }
+
+  // Método para actualizar el perfil del usuario actual
+  updateProfile(userData: Partial<Usuario>): Observable<Usuario> {
+    const currentUser = this.getCurrentUser();
+    if (!currentUser) {
+      return throwError(() => new Error('Usuario no autenticado'));
+    }
+
+    return this.http.put<{ mensaje: string; usuario: Usuario }>(`${this.apiUrl}/auth/perfil`, userData).pipe(
+      tap(response => {
+        // Actualizar el usuario en el localStorage y en el BehaviorSubject
+        localStorage.setItem('currentUser', JSON.stringify(response.usuario));
+        this.currentUserSubject.next(response.usuario);
+      }),
+      map(response => response.usuario),
+      catchError(error => {
+        console.error('Error al actualizar perfil:', error);
+        return throwError(() => error);
+      })
+    );
+  }
+
+  // Método para cambiar la contraseña del usuario actual
+  changePassword(currentPassword: string, newPassword: string): Observable<{ mensaje: string }> {
+    const currentUser = this.getCurrentUser();
+    if (!currentUser) {
+      return throwError(() => new Error('Usuario no autenticado'));
+    }
+
+    return this.http.put<{ mensaje: string }>(`${this.apiUrl}/auth/cambiar-password`, {
+      passwordActual: currentPassword,
+      passwordNuevo: newPassword
+    }).pipe(
+      catchError(error => {
+        console.error('Error al cambiar contraseña:', error);
+        return throwError(() => error);
+      })
     );
   }
 }

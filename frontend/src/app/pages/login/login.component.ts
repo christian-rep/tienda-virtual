@@ -14,10 +14,13 @@ import { LoginCredentials } from '../../interfaces/user.interface';
 })
 export class LoginComponent implements OnInit {
   loginForm: FormGroup;
-  error: string | null = null;
+  error: string | null = null;  
   success: string | null = null;
   loading = false;
   returnUrl: string = '/';
+  intentosRestantes: number | null = null;
+  bloqueado: boolean = false;
+  minutosRestantes: number | null = null;
 
   constructor(
     private fb: FormBuilder,
@@ -27,7 +30,8 @@ export class LoginComponent implements OnInit {
   ) {
     this.loginForm = this.fb.group({
       email: ['', [Validators.required, Validators.email]],
-      password: ['', [Validators.required, Validators.minLength(6)]]
+      password: ['', [Validators.required, Validators.minLength(6)]],
+      rememberMe: [false]
     });
   }
 
@@ -51,6 +55,9 @@ export class LoginComponent implements OnInit {
     this.loading = true;
     this.error = null;
     this.success = null;
+    this.intentosRestantes = null;
+    this.bloqueado = false;
+    this.minutosRestantes = null;
 
     const credentials: LoginCredentials = {
       email: this.loginForm.get('email')?.value,
@@ -60,11 +67,30 @@ export class LoginComponent implements OnInit {
     this.authService.login(credentials).subscribe({
       next: (response) => {
         this.loading = false;
-        this.router.navigate([this.returnUrl]);
+        if (response.usuario.rol === 'admin') {
+          this.router.navigate(['/admin/usuarios']);
+        } else {
+          this.router.navigate([this.returnUrl]);
+        }
       },
       error: (error) => {
         this.loading = false;
-        this.error = error.error?.message || 'Error al iniciar sesión';
+        console.error('Error en login:', error);
+        
+        // Manejar diferentes tipos de errores
+        if (error.status === 423) {
+          // Usuario bloqueado
+          this.bloqueado = true;
+          this.minutosRestantes = error.error?.minutosRestantes || 15;
+          this.error = error.error?.mensaje || 'Tu cuenta está bloqueada temporalmente.';
+        } else if (error.status === 401) {
+          // Credenciales inválidas
+          this.intentosRestantes = error.error?.intentosRestantes || null;
+          this.error = error.error?.mensaje || 'Error al iniciar sesión. Por favor, verifica tus credenciales.';
+        } else {
+          // Otros errores
+          this.error = error.error?.mensaje || 'Error al iniciar sesión. Por favor, verifica tus credenciales.';
+        }
       }
     });
   }
@@ -83,5 +109,9 @@ export class LoginComponent implements OnInit {
       }
     }
     return '';
+  }
+
+  irARecuperarPassword() {
+    this.router.navigate(['/forgot-password']);
   }
 }

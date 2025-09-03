@@ -5,19 +5,16 @@
         <i class="fas fa-leaf"></i>
         <span>Verdalia</span>
       </a>
-      <button class="mobile-menu-btn" (click)="toggleMobileMenu()">
+      <button class="mobile-menu-btn" (click)="toggleMobileMenu($event)">
         <i class="fas" [ngClass]="{'fa-bars': !mobileMenuOpen, 'fa-times': mobileMenuOpen}"></i>
       </button>
     </div>
 
     <div class="navbar-menu" [ngClass]="{'active': mobileMenuOpen}">
       <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}" class="navbar-item">Inicio</a>
-      <a routerLink="/products" routerLinkActive="active" class="navbar-item">Plantas</a>
-      <a routerLink="/chat" routerLinkActive="active" class="navbar-item">Asistente</a>
-      <a routerLink="/cart" routerLinkActive="active" class="navbar-item cart-icon">
-        <i class="fas fa-shopping-cart"></i>
-        <span class="cart-count" *ngIf="cartItemCount > 0">{{ cartItemCount }}</span>
-      </a>
+      <a routerLink="/productos" routerLinkActive="active" class="navbar-item">Productos</a>
+      <a routerLink="/nosotros" routerLinkActive="active" class="navbar-item">Nosotros</a>
+      <a routerLink="/contacto" routerLinkActive="active" class="navbar-item">Contacto</a>
     </div>
 
     <div class="navbar-end" [ngClass]="{'active': mobileMenuOpen}">
@@ -26,13 +23,13 @@
         <a routerLink="/login" routerLinkActive="active" class="navbar-item login-btn">
           <i class="fas fa-user"></i> Iniciar Sesión
         </a>
-        <a routerLink="/register" routerLinkActive="active" class="navbar-item register-btn">Registrarse</a>
+        <a routerLink="/registro" routerLinkActive="active" class="navbar-item register-btn">Registrarse</a>
       </ng-container>
 
       <!-- Opciones para usuarios autenticados -->
       <ng-container *ngIf="isAuthenticated">
         <div class="user-menu">
-          <button class="user-menu-btn" (click)="toggleUserMenu()">
+          <button class="user-menu-btn" (click)="toggleUserMenu($event)">
             <i class="fas fa-user-circle"></i>
             <span>{{ userName }}</span>
             <i class="fas fa-chevron-down"></i>
@@ -40,23 +37,36 @@
           <div class="user-dropdown" [ngClass]="{'active': userMenuOpen}">
             <!-- Opciones de administrador -->
             <ng-container *ngIf="isAdmin">
-              <a routerLink="/admin/plantas" class="dropdown-item">
-                <i class="fas fa-leaf"></i> Gestión de Plantas
+              <a (click)="navigateToUserManagement($event)" class="dropdown-item">
+                <i class="fas fa-users-cog"></i> Gestión de Usuarios
               </a>
-              <div class="dropdown-divider"></div>
+              <a routerLink="/admin/plantas" class="dropdown-item" (click)="userMenuOpen = false">
+                <i class="fas fa-leaf"></i> Gestión de Productos
+              </a>
             </ng-container>
-            <a routerLink="/profile" class="dropdown-item">
+            <a routerLink="/profile" class="dropdown-item" (click)="userMenuOpen = false">
               <i class="fas fa-user-cog"></i> Mi Perfil
             </a>
-            <a routerLink="/orders" class="dropdown-item">
+            <a routerLink="/mis-pedidos" class="dropdown-item" (click)="userMenuOpen = false">
               <i class="fas fa-shopping-bag"></i> Mis Pedidos
             </a>
-            <a (click)="logout()" class="dropdown-item logout">
+            <button (click)="logout($event)" class="dropdown-item logout">
               <i class="fas fa-sign-out-alt"></i> Cerrar Sesión
-            </a>
+            </button>
           </div>
         </div>
       </ng-container>
+
+      <!-- Carrito -->
+      <a routerLink="/carrito" class="navbar-item cart-icon">
+        <i class="fas fa-shopping-cart"></i>
+        <span *ngIf="cartItemCount > 0" class="cart-count">{{cartItemCount}}</span>
+      </a>
+
+      <!-- Botón menú móvil -->
+      <button class="mobile-menu-btn" (click)="toggleMobileMenu($event)">
+        <i class="fas" [ngClass]="{'fa-bars': !mobileMenuOpen, 'fa-times': mobileMenuOpen}"></i>
+      </button>
     </div>
   </div>
 </nav>

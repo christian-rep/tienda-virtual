@@ -4,7 +4,7 @@ const jwt = require('jsonwebtoken');
 const JWT_SECRET = process.env.JWT_SECRET || 'tu_secreto_jwt_super_seguro';
 
 // Middleware para verificar si el usuario está autenticado
-const isAuthenticated = (req, res, next) => {
+exports.verificarToken = (req, res, next) => {
   try {
     // Obtener el token del header
     const authHeader = req.headers.authorization;
@@ -30,7 +30,7 @@ const isAuthenticated = (req, res, next) => {
     const decoded = jwt.verify(token, JWT_SECRET);
     
     // Agregar la información del usuario al objeto request
-    req.user = decoded;
+    req.usuario = decoded;
     
     next();
   } catch (error) {
@@ -51,9 +51,9 @@ const isAuthenticated = (req, res, next) => {
 };
 
 // Middleware para verificar si el usuario es administrador
-const isAdmin = (req, res, next) => {
-  // Verificar si el middleware de autenticación ya estableció req.user
-  if (!req.user) {
+exports.isAdmin = (req, res, next) => {
+  // Verificar si el middleware de autenticación ya estableció req.usuario
+  if (!req.usuario) {
     return res.status(401).json({
       success: false,
       message: 'Usuario no autenticado'
@@ -61,7 +61,7 @@ const isAdmin = (req, res, next) => {
   }
 
   // Verificar si el usuario tiene rol de administrador
-  if (req.user.rol !== 'admin') {
+  if (req.usuario.rol !== 'admin') {
     return res.status(403).json({
       success: false,
       message: 'Acceso denegado: se requieren privilegios de administrador'
@@ -69,9 +69,4 @@ const isAdmin = (req, res, next) => {
   }
 
   next();
-};
-
-module.exports = {
-  isAuthenticated,
-  isAdmin
 }; 
